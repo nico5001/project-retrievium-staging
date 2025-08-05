@@ -1,6 +1,14 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import "aos/dist/aos.css";
+
+html, body, #__next {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
 
 :root {
   --foreground-rgb: 0, 0, 0;
