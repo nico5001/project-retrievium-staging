@@ -9,11 +9,17 @@ html, body, #__next {
   overflow-x: hidden;
 }
 
+@keyframes pr-scan {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
 
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  --pr-yellow: 244 215 59;  
+  --pr-purple: 152 83 255;   
 }
 
 @media (prefers-color-scheme: dark) {
@@ -93,4 +99,70 @@ html, body, #__next {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.glitch {
+  position: relative;
+  will-change: transform, opacity, filter;
+  text-shadow:
+    0 0 6px rgba(255, 0, 0, .55),
+    0 0 12px rgba(255, 0, 0, .35);
+  animation: glitch-flicker 1.25s ease-in-out infinite;
+}
+
+/* red split (top slice) */
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  will-change: transform, clip-path, opacity;
+}
+
+/* RED layer */
+.glitch::before {
+  color: rgba(255, 64, 64, .85);
+  transform: translateX(1px);
+  clip-path: inset(0 0 55% 0);
+  animation: glitch-scan-1 1.2s linear infinite;
+}
+
+/* CYAN layer */
+.glitch::after {
+  color: rgba(64, 255, 255, .85);
+  transform: translateX(-1px);
+  clip-path: inset(45% 0 0 0);
+  animation: glitch-scan-2 1.2s linear infinite;
+}
+
+/* micro‑flicker of intensity */
+@keyframes glitch-flicker {
+  0%, 100% { filter: brightness(1); opacity: 1; }
+  8%      { filter: brightness(1.18); }
+  12%     { filter: brightness(0.9); }
+  22%     { filter: brightness(1.22); opacity: .95; }
+  55%     { filter: brightness(1.05); }
+  66%     { filter: brightness(1.25); opacity: .92; }
+  80%     { filter: brightness(0.95); }
+}
+
+/* horizontal jitter + slice shifts */
+@keyframes glitch-scan-1 {
+  0%   { transform: translateX(1px); }
+  20%  { transform: translateX(2px); clip-path: inset(0 0 50% 0); }
+  40%  { transform: translateX(0px); clip-path: inset(0 0 60% 0); }
+  60%  { transform: translateX(3px); clip-path: inset(0 0 45% 0); }
+  80%  { transform: translateX(1px); clip-path: inset(0 0 55% 0); }
+  100% { transform: translateX(2px); }
+}
+
+@keyframes glitch-scan-2 {
+  0%   { transform: translateX(-1px); }
+  20%  { transform: translateX(-2px); clip-path: inset(40% 0 0 0); }
+  40%  { transform: translateX(0px);   clip-path: inset(50% 0 0 0); }
+  60%  { transform: translateX(-3px);  clip-path: inset(35% 0 0 0); }
+  80%  { transform: translateX(-1px);  clip-path: inset(45% 0 0 0); }
+  100% { transform: translateX(-2px); }
 }

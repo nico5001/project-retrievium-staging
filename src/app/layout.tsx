@@ -2,62 +2,73 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "aos/dist/aos.css";
 import "./globals.css";
+
 import { ThirdwebProvider } from "thirdweb/react";
 import { Toaster } from "sonner";
 import { ToastProvider } from "@/components/ui/toast";
 import ClientWrapper from "../components/ClientWrapper";
-import Carousel     from "../components/Carousel";
+import localFont from "next/font/local";
 import Link from "next/link";
-import { ReactNode } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	title: "NFT Minting template",
-	description: "A minting template powered by thirdweb",
+  title: "Project Retrievium",
+  description: "A pfp collection on Ronin with evolving lore and utility.",
+  
 };
 
-export default function RootLayout({
-	children,
-}: Readonly<{
-	children: React.ReactNode;
-}>) {
-	return (
-		<html lang="en">
-			<body className={inter.className}>
-			 <ThirdwebProvider>
+export const ethnocentric = localFont({
+  src: [
+    { path: "../../public/fonts/ethnocentric/Ethnocentric-Regular.woff2", weight: "400", style: "normal" },
+    { path: "../../public/fonts/ethnocentric/Ethnocentric-Italic.woff2",   weight: "400", style: "italic" },
+  ],
+  variable: "--font-ethno",
+  display: "swap",
+});
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className={`${inter.className} ${ethnocentric.variable} bg-black`}>
+        <ThirdwebProvider>
           <ToastProvider>
             <Toaster position="bottom-center" />
 
-            {/* NAV: logo left / links center / mint button right */}
-            <nav className="bg-gray-900 text-white flex items-center px-8 py-4">
-              {/* Logo placeholder */}
+            
+            <nav
+              className="fixed inset-x-0 top-0 z-50 bg-transparent text-white h-16 sm:h-20 px-6 sm:px-8 flex items-center"
+              style={{ backdropFilter: "none", WebkitBackdropFilter: "none" }}
+            >
+              {/* Logo (left) */}
               <div className="flex-1">
-                <img src="/images/logo-new-cyan.png" alt="Logo" className="h-8 w-auto"/>
+                <img
+                  src="/images/PR-YELLOW-LOGO.png"
+                  alt="Project Retrievium"
+                  className="h-10 sm:h-12 md:h-14 w-auto"
+                />
               </div>
 
-              {/* Centered links */}
-              <div className="flex-1 flex justify-center gap-8 uppercase tracking-wide">
-                <Link href="/home" className="hover:underline">Home</Link>
-                <Link href="/community" className="hover:underline">Community</Link>
+              {/* Links (center) */}
+              <div className="flex-1 hidden md:flex justify-center gap-8 uppercase tracking-wide">
               </div>
 
-              {/* Mint button on the right */}
+              {/* Mint (right) */}
               <div className="flex-1 flex justify-end">
                 <Link
                   href="/mint"
-                  className="bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition"
+                  className="rounded-full bg-white text-black px-4 py-2 hover:bg-gray-200 transition"
                 >
                   Mint
                 </Link>
               </div>
             </nav>
 
-            {/* wrap all pages for AOS & Thirdweb */}
+            
             <ClientWrapper>{children}</ClientWrapper>
           </ToastProvider>
         </ThirdwebProvider>
-			</body>
-		</html>
-	);
+      </body>
+    </html>
+  );
 }

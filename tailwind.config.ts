@@ -58,9 +58,13 @@ const config: Config = {
   				'3': 'hsl(var(--chart-3))',
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
-  			}
-  		}
-  	}
+  			},
+			
+  		},
+   fontFamily: {
+        ethno: ['var(--font-ethno)', 'ui-sans-serif', 'system-ui'],
+      },
+    },
   },
   plugins: [require("tailwindcss-animate")],
 };

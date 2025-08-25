@@ -1,96 +1,102 @@
-// src/components/ParallaxSection.tsx
 "use client";
-import { useState, useEffect, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 
-interface ParallaxSectionProps {
-  bgImage:    string;
-  speedY?:     number;
-  zoomSpeed?:  number;
-  children:    ReactNode;
+interface Props {
+  bgImage: string;
+  speedY?: number;
+  zoomSpeed?: number;
+  disableOnMobile?: boolean;
+  className?: string;
+  children: ReactNode;
 }
 
 export default function ParallaxSection({
   bgImage,
-  speedY    = 0.15,
+  speedY = 0.15,
   zoomSpeed = 0.0005,
+  disableOnMobile = true,
+  className = "",
   children,
-}: ParallaxSectionProps) {
-  const [offsetY, setOffsetY] = useState(0);
+}: Props) {
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [y, setY] = useState(0);
 
+  
   useEffect(() => {
-    const onScroll = () => setOffsetY(window.pageYOffset);
+    const mql = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const canEnable = () =>
+      !(disableOnMobile && window.innerWidth < 768) && !mql.matches;
+
+    setEnabled(canEnable());
+    const onResize = () => setEnabled(canEnable());
+    const onChange = () => setEnabled(canEnable());
+    window.addEventListener("resize", onResize);
+    mql.addEventListener?.("change", onChange);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      mql.removeEventListener?.("change", onChange);
+    };
+  }, [disableOnMobile]);
+
+  // Parallax scroll
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        if (!sectionRef.current) return;
+        const rect = sectionRef.current.getBoundingClientRect();
+        setY(-rect.top);
+      });
+    };
+    onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
-  const translateY = -offsetY * speedY;
-  const scale      = 1 + offsetY * zoomSpeed;
+  const translateY = y * (enabled ? speedY : 0);
+  const scale = Math.min(1.15, Math.max(1, 1 + y * (enabled ? zoomSpeed : 0)));
 
   return (
     <section
-      style={{
-        position:   "relative",
-        width:      "100vw",
-        left:       "50%",
-        marginLeft: "-50vw",    // pull out of parent container
-        minHeight:  "100vh",    // at least viewport tall
-        overflow:   "visible",  // allow children/content to scroll
-      }}
+      ref={sectionRef}
+      className={`relative w-screen min-h-[100svh] overflow-hidden ${className}`}
     >
-      {/* background wrapper crops zoomed image */}
+      {/* Background image (parallax) */}
       <div
+        aria-hidden
+        className="absolute inset-0 will-change-transform"
         style={{
-          position:   "absolute",
-          top:        0,
-          left:       0,
-          width:      "100%",
-          height:     "100%",
-          overflow:   "hidden",    // crop zoom/translate
-        }}
-      >
-        <div
-          style={{
-            width:            "100%",
-            height:           "100%",
-            backgroundImage: `url('${bgImage}')`,  
-            backgroundSize:   "cover",
-            backgroundPosition: "center",
-            transform:         `translateY(${translateY}px) scale(${scale})`,  
-            transformOrigin:  "center center",
-          }}
-        />
-      </div>
-
-      {/* Top-to-transparent gradient */}
-      <div
-        style={{
-          position:   "absolute",
-          top:        0,
-          left:       0,
-          right:      0,
-          height:    "50vh",
-          background: "linear-gradient(to bottom, rgba(0, 0, 0, 1), transparent)",
-          pointerEvents: "none",
+          transform: `translate3d(0, ${translateY}px, 0) scale(${scale})`,
+          backgroundImage: `url('${bgImage}')`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       />
 
-      {/* Bottom-to-transparent gradient, stronger fade */}
+      {/* Top gradient */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28vh] sm:h-[32vh] md:h-[36vh] bg-gradient-to-b from-black/85 via-black/45 to-transparent" />
+
+      {/* Bottom gradient */}
       <div
-        style={{
-          position:   "absolute",
-          bottom:     0,
-          left:       0,
-          right:      0,
-          height:    "50vh",
-          background: "linear-gradient(to top, rgba(0, 0, 0, 1), transparent)",
-          pointerEvents: "none",
-        }}
+        className="
+          pointer-events-none
+          absolute inset-x-0 bottom-0
+          h-[64vh] sm:h-[66vh] md:h-[68vh]
+          bg-gradient-to-t
+          from-black/90 via-black/75 to-transparent
+        "
+        style={{ mixBlendMode: "multiply" }}
       />
 
-      {/* page content */}
-      <div style={{ position: "relative", zIndex: 10 }}>
-        {children}
-      </div>
+  
+
+      {/* Foreground content */}
+      <div className="relative z-20 min-h-[100svh]">{children}</div>
     </section>
   );
 }

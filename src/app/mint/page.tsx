@@ -1,3 +1,6 @@
+
+import { redirect } from "next/navigation";
+
 import { NftMint } from "@/components/nft-mint";
 import { defaultTokenId, contract } from "@/lib/constants";
 // lib imports for fetching NFT details
@@ -8,16 +11,23 @@ import { getERC1155Info } from "@/lib/erc1155";
 import { isERC1155 } from "thirdweb/extensions/erc1155";
 import { isERC721 } from "thirdweb/extensions/erc721";
 
+// env var toggle
+const MINT_OPEN = process.env.NEXT_PUBLIC_MINT_OPEN === "true";
+
 async function getERCType() {
   const [isErc721, isErc1155] = await Promise.all([
     isERC721({ contract }).catch(() => false),
     isERC1155({ contract }).catch(() => false),
   ]);
-
   return isErc1155 ? "ERC1155" : isErc721 ? "ERC721" : "ERC20";
 }
 
-export default async function Home() {
+export default async function MintPage() {
+  // Page gating bounce to home
+  if (!MINT_OPEN) {
+    redirect("/home"); 
+  }
+
   try {
     const ercType = await getERCType();
     if (!ercType) throw new Error("Failed to determine ERC type.");
@@ -54,15 +64,11 @@ export default async function Home() {
       />
     );
   } catch (error) {
-    console.error("Error in Home component:", error);
+    console.error("Error in MintPage:", error);
     return (
       <div>
         <h1>Failed to load NFT</h1>
-        <p>
-          {error instanceof Error
-            ? error.message
-            : "An unexpected error occurred."}
-        </p>
+        <p>{error instanceof Error ? error.message : "An unexpected error occurred."}</p>
       </div>
     );
   }
