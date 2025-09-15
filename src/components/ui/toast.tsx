@@ -1,221 +1,132 @@
 "use client";
 
-import React from "react";
-import { createPortal } from "react-dom";
-import { RxCross2 } from "react-icons/rx";
-import {
-  FaCheckCircle,
-  FaExclamationCircle,
-  FaInfoCircle,
-  FaExclamationTriangle,
-} from "react-icons/fa";
+import * as React from "react";
+import * as ToastPrimitives from "@radix-ui/react-toast";
+import { cva, type VariantProps } from "class-variance-authority";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-/* ========================
-   Public API
-   ======================== */
-export type ToastType = "success" | "error" | "warning" | "info";
+const ToastProvider = ToastPrimitives.Provider;
 
-export type PushArgs =
-  | { message: string; type?: ToastType; duration?: number }
-  | string; // push("Saved!") => info, 5s
+const ToastViewport = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Viewport>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Viewport
+    ref={ref}
+    className={cn(
+      "fixed z-[100] flex max-h-screen w-full flex-col-reverse p-4 md:max-w-[420px] md:flex-col md:p-6",
+      "bottom-0 right-0",
+      className
+    )}
+    {...props}
+  />
+));
+ToastViewport.displayName = ToastPrimitives.Viewport.displayName;
 
-type ToastContextValue = {
-  push: (args: PushArgs) => void;
-};
-
-const ToastContext = React.createContext<ToastContextValue | null>(null);
-
-export function useToast() {
-  const ctx = React.useContext(ToastContext);
-  if (!ctx) throw new Error("useToast must be used within <ToastProvider>");
-  return ctx;
-}
-
-/* ========================
-   Styles
-   ======================== */
-const typeStyles: Record<
-  ToastType,
+const toastVariants = cva(
+  cn(
+    "group pointer-events-auto relative w-full rounded-md border p-4 pr-8 shadow-lg transition-all",
+    "data-[state=open]:animate-in data-[state=closed]:animate-out",
+    "data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80",
+    "data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-right-full",
+    "sm:data-[state=closed]:slide-out-to-right-full sm:data-[state=open]:slide-in-from-right-full",
+    "bg-background text-foreground"
+  ),
   {
-    bg: string;
-    ring: string;
-    text: string;
-    icon: React.ComponentType<{ className?: string }>;
-    bar: string;
-  }
-> = {
-  success: {
-    bg: "from-emerald-900/30 to-emerald-800/20",
-    ring: "ring-emerald-400/50",
-    text: "text-emerald-200",
-    icon: FaCheckCircle,
-    bar: "bg-emerald-400",
-  },
-  error: {
-    bg: "from-rose-900/30 to-rose-800/20",
-    ring: "ring-rose-400/50",
-    text: "text-rose-200",
-    icon: FaExclamationCircle,
-    bar: "bg-rose-400",
-  },
-  warning: {
-    bg: "from-amber-900/30 to-amber-800/20",
-    ring: "ring-amber-400/50",
-    text: "text-amber-200",
-    icon: FaExclamationTriangle,
-    bar: "bg-amber-400",
-  },
-  info: {
-    bg: "from-cyan-900/30 to-cyan-800/20",
-    ring: "ring-cyan-400/50",
-    text: "text-cyan-200",
-    icon: FaInfoCircle,
-    bar: "bg-cyan-400",
-  },
-};
-
-/* ========================
-   Toast Card
-   ======================== */
-function ToastCard({
-  id,
-  message,
-  type,
-  startedAt,
-  duration,
-  onClose,
-  now,
-}: {
-  id: number;
-  message: string;
-  type: ToastType;
-  startedAt: number;
-  duration: number;
-  now: number;
-  onClose: (id: number) => void;
-}) {
-  const { bg, ring, text, icon: Icon, bar } = typeStyles[type];
-
-  const elapsed = Math.max(0, now - startedAt);
-  const pct = Math.max(0, 1 - elapsed / duration); // 1→0
-
-  return (
-    <div
-      className={`group relative w-[320px] max-w-[92vw] overflow-hidden rounded-xl border border-slate-600/40
-                  bg-gradient-to-br ${bg} ${text} shadow-2xl backdrop-blur-sm
-                  ring-1 ${ring} animate-toast-in`}
-      role="status"
-      aria-live={type === "error" ? "assertive" : "polite"}
-      aria-atomic="true"
-    >
-      {/* glow scan line */}
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-[1200ms]" />
-      <div className="flex items-start gap-3 px-4 py-3">
-        <Icon className="mt-[2px] h-5 w-5 flex-shrink-0 drop-shadow" />
-        <div className="flex-1 font-mono text-sm leading-relaxed">{message}</div>
-        <button
-          onClick={() => onClose(id)}
-          className="ml-2 rounded p-1 text-slate-300/70 hover:text-white hover:bg-white/5 transition"
-          aria-label="Close notification"
-        >
-          <RxCross2 className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* progress bar */}
-      <div className="h-1 w-full bg-slate-700/50">
-        <div
-          className={`h-1 ${bar} transition-[width] duration-100 ease-linear`}
-          style={{ width: `${pct * 100}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-/* ========================
-   Provider (portal + queue)
-   ======================== */
-type ToastItem = {
-  id: number;
-  message: string;
-  type: ToastType;
-  duration: number;
-  startedAt: number;
-};
-
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [toasts, setToasts] = React.useState<ToastItem[]>([]);
-  const [portalEl, setPortalEl] = React.useState<HTMLElement | null>(null);
-  const [now, setNow] = React.useState(() => Date.now());
-
-  // keep re-rendering for progress bars
-  React.useEffect(() => {
-    setPortalEl(document.body);
-    const t = setInterval(() => setNow(Date.now()), 100);
-    return () => clearInterval(t);
-  }, []);
-
-  const remove = React.useCallback((id: number) => {
-    setToasts((ts) => ts.filter((t) => t.id !== id));
-  }, []);
-
-  const push = React.useCallback(
-    (args: PushArgs) => {
-      const normalized =
-        typeof args === "string"
-          ? { message: args, type: "info" as ToastType, duration: 5000 }
-          : {
-              message: args.message,
-              type: (args.type ?? "info") as ToastType,
-              duration: Math.max(1200, args.duration ?? 5000),
-            };
-
-      const id = Math.floor(Date.now() + Math.random() * 1000);
-      const item: ToastItem = {
-        id,
-        message: normalized.message,
-        type: normalized.type,
-        duration: normalized.duration,
-        startedAt: Date.now(),
-      };
-      setToasts((ts) => [...ts, item]);
-
-      // auto dismiss
-      setTimeout(() => remove(id), normalized.duration);
+    variants: {
+      variant: {
+        default: "border-border",
+        destructive:
+          "border-destructive/50 text-destructive dark:border-destructive",
+      },
     },
-    [remove]
-  );
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+);
 
-  const value = React.useMemo(() => ({ push }), [push]);
+type ToastProps = React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+  VariantProps<typeof toastVariants>;
 
-  return (
-    <ToastContext.Provider value={value}>
-      {children}
-      {portalEl &&
-        createPortal(
-          <div
-            className="
-              fixed bottom-6 right-6 z-[1000] flex w-full max-w-full flex-col items-end gap-3
-              md:right-6 md:items-end
-              sm:bottom-6
-            "
-          >
-            {toasts.map((t) => (
-              <ToastCard
-                key={t.id}
-                id={t.id}
-                message={t.message}
-                type={t.type}
-                duration={t.duration}
-                startedAt={t.startedAt}
-                now={now}
-                onClose={remove}
-              />
-            ))}
-          </div>,
-          portalEl
-        )}
-    </ToastContext.Provider>
-  );
+const Toast = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Root>,
+  ToastProps
+>(({ className, variant, ...props }, ref) => (
+  <ToastPrimitives.Root
+    ref={ref}
+    className={cn(toastVariants({ variant }), className)}
+    {...props}
+  />
+));
+Toast.displayName = ToastPrimitives.Root.displayName;
+
+const ToastAction = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Action>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Action
+    ref={ref}
+    className={cn(
+      "inline-flex h-8 shrink-0 items-center justify-center rounded-md border px-3 text-sm font-medium transition-colors",
+      "focus:outline-none focus:ring-1 disabled:pointer-events-none disabled:opacity-50",
+      "bg-transparent hover:bg-accent hover:text-accent-foreground",
+      className
+    )}
+    {...props}
+  />
+));
+ToastAction.displayName = ToastPrimitives.Action.displayName;
+
+const ToastClose = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Close>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Close
+    ref={ref}
+    className={cn(
+      "absolute right-2 top-2 rounded-md p-1 text-foreground/70 opacity-0 transition-opacity",
+      "hover:text-foreground focus:opacity-100 focus:outline-none group-hover:opacity-100"
+    )}
+    toast-close=""
+    {...props}
+  >
+    <X className="h-4 w-4" />
+  </ToastPrimitives.Close>
+));
+ToastClose.displayName = ToastPrimitives.Close.displayName;
+
+const ToastTitle = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Title>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Title
+    ref={ref}
+    className={cn("text-sm font-semibold", className)}
+    {...props}
+  />
+));
+ToastTitle.displayName = ToastPrimitives.Title.displayName;
+
+const ToastDescription = React.forwardRef<
+  React.ElementRef<typeof ToastPrimitives.Description>,
+  React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+>(({ className, ...props }, ref) => (
+  <ToastPrimitives.Description
+    ref={ref}
+    className={cn("text-sm opacity-90", className)}
+    {...props}
+  />
+));
+ToastDescription.displayName = ToastPrimitives.Description.displayName;
+
+export {
+  Toast,
+  ToastAction,
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastTitle,
+  ToastViewport,
 };
