@@ -4,8 +4,8 @@ import "aos/dist/aos.css";
 import "./globals.css";
 
 import { ThirdwebProvider } from "thirdweb/react";
-import { Toaster } from "sonner";
-import { ToastProvider } from "@/components/ui/toast";
+import { ToastProvider } from "@/hooks/use-toast";        // ✅ hooks provider (context for useToast)
+import { Toaster } from "@/components/ui/toaster";        // ✅ shadcn toaster renderer
 import ClientWrapper from "../components/ClientWrapper";
 import localFont from "next/font/local";
 import Link from "next/link";
@@ -15,7 +15,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Project Retrievium",
   description: "A pfp collection on Ronin with evolving lore and utility.",
-  
 };
 
 export const ethnocentric = localFont({
@@ -32,15 +31,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body className={`${inter.className} ${ethnocentric.variable} bg-black`}>
         <ThirdwebProvider>
+          
           <ToastProvider>
-            <Toaster position="bottom-center" />
-
             
             <nav
               className="fixed inset-x-0 top-0 z-50 bg-transparent text-white h-16 sm:h-20 px-6 sm:px-8 flex items-center"
               style={{ backdropFilter: "none", WebkitBackdropFilter: "none" }}
             >
-              {/* Logo (left) */}
               <div className="flex-1">
                 <img
                   src="/images/PR-YELLOW-LOGO.png"
@@ -48,12 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   className="h-10 sm:h-12 md:h-14 w-auto"
                 />
               </div>
-
-              {/* Links (center) */}
-              <div className="flex-1 hidden md:flex justify-center gap-8 uppercase tracking-wide">
-              </div>
-
-              {/* Mint (right) */}
+              <div className="flex-1 hidden md:flex justify-center gap-8 uppercase tracking-wide" />
               <div className="flex-1 flex justify-end">
                 <Link
                   href="/mint"
@@ -64,8 +56,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </nav>
 
-            
             <ClientWrapper>{children}</ClientWrapper>
+
+            
+            <Toaster />
           </ToastProvider>
         </ThirdwebProvider>
       </body>
