@@ -10,16 +10,14 @@ const csp = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "img-src 'self' data: blob: https:",
-  // add Sentry ingest (both global + us region)
   "connect-src 'self' https://*.supabase.co https://*.supabase.in https://*.roninchain.com https://api.skymavis.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io wss:",
-  process.env.NODE_ENV === 'production'
-    ? "script-src 'self'"
-    : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "object-src 'none'",
   "form-action 'self'",
 ].join('; ');
+
 
 
 export function middleware(req: NextRequest) {
