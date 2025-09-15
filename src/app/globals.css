@@ -3,6 +3,15 @@
 @tailwind utilities;
 @import "aos/dist/aos.css";
 
+@keyframes toast-in { 
+  from { opacity: 0; transform: translateY(-20px); } 
+  to { opacity: 1; transform: translateY(0); } 
+}
+
+.animate-toast-in { 
+  animation: toast-in 0.4s cubic-bezier(.4,2,.3,1) both; 
+}
+
 html, body, #__next {
   margin: 0;
   padding: 0;
@@ -165,4 +174,33 @@ html, body, #__next {
   60%  { transform: translateX(-3px);  clip-path: inset(35% 0 0 0); }
   80%  { transform: translateX(-1px);  clip-path: inset(45% 0 0 0); }
   100% { transform: translateX(-2px); }
+}
+
+/* Toast slide-in/out */
+@keyframes toast-in-right {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+@keyframes toast-out-right {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(24px, 0, 0) scale(0.98);
+  }
+}
+
+.animate-toast-in {
+  animation: toast-in-right 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-toast-out {
+  animation: toast-out-right 200ms ease both;
 }

@@ -1,4 +1,4 @@
-import { createThirdwebClient } from "thirdweb";
+import { createThirdwebClient, defineChain } from "thirdweb";
 
 if (
   !process.env.THIRDWEB_SECRET_KEY &&
@@ -16,3 +16,5 @@ export const client = process.env.THIRDWEB_SECRET_KEY
   : createThirdwebClient({
       clientId: process.env.NEXT_PUBLIC_THIRDWEB_CLIENT_ID || "",
     });
+
+
