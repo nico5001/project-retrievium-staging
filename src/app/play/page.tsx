@@ -411,7 +411,23 @@ export default function PlayPage(): JSX.Element {
   const [purchaseResult, setPurchaseResult] = React.useState<PurchaseResult | null>(null);
 
   // Toast (hook lives here — component scope only)
-  const { push } = useToast();
+  const { toast } = useToast();
+
+  const push = React.useCallback(
+  (
+    arg:
+      | string
+      | { message: string; type?: "success" | "error" | "warning" | "info"; description?: string }
+  ) => {
+    if (typeof arg === "string") {
+      toast({ title: arg });
+      return;
+    }
+    const variant = arg.type === "error" ? "destructive" : "default";
+    toast({ title: arg.message, description: arg.description, variant });
+  },
+  [toast]
+);
 
   // Loaders
   const refreshMe = React.useCallback(async () => {
