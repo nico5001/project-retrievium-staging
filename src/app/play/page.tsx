@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 
 
