@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 
@@ -32,8 +33,22 @@ type StabilizeResult = { ok: boolean; rzn: number; items: DropItem[]; seed?: str
 
 type Recipe = {
   key: string;
+  name: string;
+  category: 'CORE' | 'AMPLIFIER' | 'CATALYST' | 'SIGIL' | 'LENS';
+  tier: 'COMMON' | 'UNCOMMON' | 'RARE' | 'EPIC';
   requires: Record<string, number>;
+  baseOutput: { item: string; qty: number };
+  bonusOutput?: { item: string; qty: number; chance: number }[];
   desc: string;
+  energyCost: number;
+  craftTime?: number;
+};
+
+type CraftingBonus = {
+  baseYieldMultiplier: number;
+  bonusChanceMultiplier: number;
+  energyReduction: number;
+  criticalCraftChance: number;
 };
 
 type PurchaseResult = { message: string; newBalance: number };
@@ -98,6 +113,223 @@ async function personalSign(provider: any, wallet: string, message: string): Pro
 }
 
 /* ===========================
+   Enhanced UI/UX Constants
+   =========================== */
+
+// Animation variants for smooth transitions
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.3 }
+};
+
+const staggerChildren = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+// Enhanced tier colors with gradients
+const TIER_STYLES = {
+  COMMON: {
+    gradient: 'from-slate-600 to-slate-500',
+    border: 'border-slate-500/40',
+    text: 'text-slate-200',
+    glow: 'shadow-slate-500/20'
+  },
+  UNCOMMON: {
+    gradient: 'from-green-600 to-emerald-500',
+    border: 'border-green-500/40',
+    text: 'text-green-200',
+    glow: 'shadow-green-500/20'
+  },
+  RARE: {
+    gradient: 'from-blue-600 to-cyan-500',
+    border: 'border-blue-500/40',
+    text: 'text-blue-200',
+    glow: 'shadow-blue-500/20'
+  },
+  EPIC: {
+    gradient: 'from-purple-600 to-pink-500',
+    border: 'border-purple-500/40',
+    text: 'text-purple-200',
+    glow: 'shadow-purple-500/20'
+  }
+};
+
+const CORE_CRAFTING_BONUSES: Record<string, CraftingBonus> = {
+  'none': {
+    baseYieldMultiplier: 1.0,
+    bonusChanceMultiplier: 1.0,
+    energyReduction: 0,
+    criticalCraftChance: 0,
+  },
+  'core_common': {
+    baseYieldMultiplier: 1.1,
+    bonusChanceMultiplier: 1.2,
+    energyReduction: 1,
+    criticalCraftChance: 0.05,
+  },
+  'core_uncommon': {
+    baseYieldMultiplier: 1.25,
+    bonusChanceMultiplier: 1.5,
+    energyReduction: 2,
+    criticalCraftChance: 0.10,
+  },
+  'core_rare': {
+    baseYieldMultiplier: 1.5,
+    bonusChanceMultiplier: 2.0,
+    energyReduction: 3,
+    criticalCraftChance: 0.20,
+  },
+};
+
+const ENHANCED_RECIPES: Recipe[] = [
+  // CORE EQUIPMENT
+  {
+    key: 'CRAFT_CORE_COMMON',
+    name: 'Basic Neural Core',
+    category: 'CORE',
+    tier: 'COMMON',
+    requires: { RUNE_A: 3, RUNE_B: 2, CAT_X: 1 },
+    baseOutput: { item: 'core_common', qty: 1 },
+    bonusOutput: [
+      { item: 'FLUX_RESIDUE', qty: 1, chance: 0.3 }
+    ],
+    desc: 'Forge a basic neural processing core. Provides +10% crafting yield when equipped.',
+    energyCost: 15,
+    craftTime: 30,
+  },
+  {
+    key: 'CRAFT_CORE_UNCOMMON',
+    name: 'Enhanced Neural Core',
+    category: 'CORE',
+    tier: 'UNCOMMON',
+    requires: { RUNE_C: 4, RUNE_D: 3, CAT_Y: 2, FLUX_RESIDUE: 2 },
+    baseOutput: { item: 'core_uncommon', qty: 1 },
+    bonusOutput: [
+      { item: 'QUANTUM_DUST', qty: 1, chance: 0.25 },
+      { item: 'FLUX_RESIDUE', qty: 2, chance: 0.4 }
+    ],
+    desc: 'Synthesize an enhanced neural core with quantum resonance chambers. +25% crafting yield.',
+    energyCost: 25,
+    craftTime: 60,
+  },
+  {
+    key: 'CRAFT_CORE_RARE',
+    name: 'Quantum Neural Core',
+    category: 'CORE',
+    tier: 'RARE',
+    requires: { RUNE_E: 5, RUNE_F: 4, CAT_Z: 3, QUANTUM_DUST: 3, core_uncommon: 1 },
+    baseOutput: { item: 'core_rare', qty: 1 },
+    bonusOutput: [
+      { item: 'TEMPORAL_ESSENCE', qty: 1, chance: 0.2 },
+      { item: 'QUANTUM_DUST', qty: 2, chance: 0.3 }
+    ],
+    desc: 'Craft the ultimate neural processing core with temporal stabilizers. +50% yield, 20% crit chance.',
+    energyCost: 40,
+    craftTime: 120,
+  },
+  // AMPLIFIERS (Boost specific recipe categories)
+  {
+    key: 'CRAFT_AMP_SIGIL',
+    name: 'Sigil Amplifier',
+    category: 'AMPLIFIER',
+    tier: 'UNCOMMON',
+    requires: { RUNE_B: 3, RUNE_C: 2, FLUX_RESIDUE: 2 },
+    baseOutput: { item: 'amp_sigil', qty: 1 },
+    bonusOutput: [
+      { item: 'HARMONIC_CRYSTAL', qty: 1, chance: 0.3 }
+    ],
+    desc: 'Specialized amplifier that doubles sigil crafting output when equipped.',
+    energyCost: 20,
+  },
+  {
+    key: 'CRAFT_AMP_LENS',
+    name: 'Lens Amplifier',
+    category: 'AMPLIFIER',
+    tier: 'UNCOMMON',
+    requires: { RUNE_D: 3, RUNE_E: 2, QUANTUM_DUST: 1 },
+    baseOutput: { item: 'amp_lens', qty: 1 },
+    bonusOutput: [
+      { item: 'PRISMATIC_SHARD', qty: 1, chance: 0.25 }
+    ],
+    desc: 'Precision amplifier that enhances lens crafting precision and yield.',
+    energyCost: 22,
+  },
+  // CATALYSTS (Reduce energy costs)
+  {
+    key: 'CRAFT_CAT_EFFICIENCY',
+    name: 'Efficiency Catalyst',
+    category: 'CATALYST',
+    tier: 'RARE',
+    requires: { TEMPORAL_ESSENCE: 2, QUANTUM_DUST: 4, HARMONIC_CRYSTAL: 2 },
+    baseOutput: { item: 'cat_efficiency', qty: 1 },
+    desc: 'Reduces all crafting energy costs by 25% when equipped.',
+    energyCost: 35,
+  },
+  // SIGILS (Enhanced versions with better stats)
+  {
+    key: 'CRAFT_SIGIL_RESONANCE',
+    name: 'Resonance Sigil',
+    category: 'SIGIL',
+    tier: 'UNCOMMON',
+    requires: { RUNE_A: 2, RUNE_B: 1, CAT_X: 1, HARMONIC_CRYSTAL: 1 },
+    baseOutput: { item: 'sigil_resonance', qty: 1 },
+    bonusOutput: [
+      { item: 'ECHO_FRAGMENT', qty: 1, chance: 0.4 }
+    ],
+    desc: 'An enhanced ear sigil that resonates with neural frequencies.',
+    energyCost: 18,
+  },
+  {
+    key: 'CRAFT_SIGIL_QUANTUM',
+    name: 'Quantum Sigil',
+    category: 'SIGIL',
+    tier: 'RARE',
+    requires: { RUNE_C: 3, RUNE_D: 2, CAT_Y: 2, QUANTUM_DUST: 2 },
+    baseOutput: { item: 'sigil_quantum', qty: 1 },
+    bonusOutput: [
+      { item: 'VOID_ESSENCE', qty: 1, chance: 0.2 },
+      { item: 'ECHO_FRAGMENT', qty: 2, chance: 0.3 }
+    ],
+    desc: 'A sigil infused with quantum entanglement properties.',
+    energyCost: 30,
+  },
+  // LENSES (Enhanced optic equipment)
+  {
+    key: 'CRAFT_LENS_PRISMATIC',
+    name: 'Prismatic Lens',
+    category: 'LENS',
+    tier: 'UNCOMMON',
+    requires: { RUNE_D: 2, RUNE_E: 1, CAT_Z: 1, PRISMATIC_SHARD: 1 },
+    baseOutput: { item: 'lens_prismatic', qty: 1 },
+    bonusOutput: [
+      { item: 'SPECTRUM_CORE', qty: 1, chance: 0.35 }
+    ],
+    desc: 'Multi-spectrum optical lens for enhanced perception.',
+    energyCost: 20,
+  },
+  {
+    key: 'CRAFT_LENS_TEMPORAL',
+    name: 'Temporal Lens',
+    category: 'LENS',
+    tier: 'EPIC',
+    requires: { RUNE_F: 4, CAT_Z: 3, TEMPORAL_ESSENCE: 3, SPECTRUM_CORE: 2 },
+    baseOutput: { item: 'lens_temporal', qty: 1 },
+    bonusOutput: [
+      { item: 'CHRONO_FRAGMENT', qty: 1, chance: 0.15 },
+      { item: 'VOID_ESSENCE', qty: 1, chance: 0.25 }
+    ],
+    desc: 'Legendary lens capable of perceiving temporal anomalies.',
+    energyCost: 50,
+    craftTime: 180,
+  },
+];
+
+/* ===========================
    Memory puzzle (enhanced sci-fi)
    =========================== */
 
@@ -116,6 +348,89 @@ function hashStringToSeed(s: string): number {
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
+}
+
+// Enhanced UI Components
+function AnimatedCounter({ value, suffix = '', prefix = '', className = '' }: {
+  value: number;
+  suffix?: string;
+  prefix?: string;
+  className?: string;
+}) {
+  const [displayValue, setDisplayValue] = React.useState(value);
+
+  React.useEffect(() => {
+    const startValue = displayValue;
+    const endValue = value;
+    const duration = 600;
+    const startTime = Date.now();
+
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      const currentValue = Math.floor(startValue + (endValue - startValue) * progress);
+      setDisplayValue(currentValue);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return (
+    <span className={className}>
+      {prefix}{displayValue.toLocaleString()}{suffix}
+    </span>
+  );
+}
+
+function ProgressRing({ progress, size = 60, strokeWidth = 4, className = '' }: {
+  progress: number;
+  size?: number;
+  strokeWidth?: number;
+  className?: string;
+}) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (progress / 100) * circumference;
+
+  return (
+    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="rgba(148, 163, 184, 0.2)"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="url(#progressGradient)"
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="transition-all duration-500 ease-out"
+        />
+        <defs>
+          <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#06b6d4" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+        </defs>
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xs font-bold text-cyan-200">{Math.round(progress)}%</span>
+      </div>
+    </div>
+  );
 }
 
 function ScanMemory({
@@ -196,24 +511,29 @@ function ScanMemory({
   const cols = 4;
 
   return (
-    <div className="relative rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
+    <div className="group relative rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
       <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent animate-pulse"></div>
       <div className="relative z-10">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="h-3 w-3 rounded-full bg-cyan-400 animate-pulse"></div>
-            <div className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
+            <div className="text-base sm:text-lg font-semibold text-cyan-100 tracking-wider">
               NEURAL SCAN MATRIX
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-cyan-300/80 font-mono">
-            <span className="bg-cyan-950/50 px-2 py-1 rounded border border-cyan-700/30">
+          <div className="flex items-center gap-2 text-xs text-cyan-300/80">
+            <span className="bg-cyan-950/50 px-2 py-1 rounded border border-cyan-700/30 font-mono">
               FLIPS: {flips}
             </span>
+            <ProgressRing
+              progress={Math.min(100, (matched.filter(Boolean).length / matched.length) * 100)}
+              size={32}
+              strokeWidth={3}
+            />
           </div>
         </div>
 
-        <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+        <div className="grid gap-2 sm:gap-3 grid-cols-4">
           {deck.map((face, i) => {
             const up = revealed.includes(i) || matched[i];
             const isMatched = matched[i];
@@ -222,7 +542,7 @@ function ScanMemory({
                 key={i}
                 onClick={() => clickCard(i)}
                 disabled={disabled}
-                className={`group relative h-20 sm:h-24 md:h-28 rounded-lg border-2 transition-all duration-300 text-2xl sm:text-3xl md:text-4xl flex items-center justify-center overflow-hidden ${
+                className={`group relative h-16 sm:h-20 md:h-24 rounded-lg border-2 transition-all duration-300 text-xl sm:text-2xl md:text-3xl flex items-center justify-center overflow-hidden ${
                   isMatched
                     ? 'border-emerald-400/60 bg-gradient-to-br from-emerald-900/40 to-emerald-800/20 shadow-emerald-400/20 shadow-lg'
                     : up
@@ -255,6 +575,470 @@ function ScanMemory({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ===========================
+   Daily Missions Panel
+   =========================== */
+
+type Mission = {
+  id: string;
+  title: string;
+  description: string;
+  progress: number;
+  target: number;
+  reward: { rzn: number; items?: { item: string; qty: number }[] };
+  completed: boolean;
+  claimed: boolean;
+};
+
+// Enhanced Mission Card Component
+function MissionCard({ mission, onClaim, busy }: {
+  mission: Mission;
+  onClaim: (id: string) => void;
+  busy: boolean;
+}) {
+  const progressPct = Math.min(100, (mission.progress / mission.target) * 100);
+  const isCompleted = mission.completed;
+  const isClaimed = mission.claimed;
+
+  return (
+    <div
+      className={`group relative rounded-lg border p-4 transition-all duration-300 hover:scale-[1.02] ${
+        isCompleted
+          ? 'border-emerald-500/50 bg-gradient-to-br from-emerald-950/30 to-emerald-900/20'
+          : 'border-slate-600/30 bg-gradient-to-br from-slate-800/30 to-slate-900/20 hover:border-slate-500/40'
+      }`}
+    >
+      {/* Mission Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="text-base font-semibold text-slate-200">{mission.title}</div>
+            {isCompleted && (
+              <div className="animate-pulse">
+                <span className="text-emerald-400 text-sm">✓</span>
+              </div>
+            )}
+          </div>
+          <div className="text-sm text-slate-400">{mission.description}</div>
+        </div>
+        <div className="text-right text-xs font-mono ml-4">
+          <div className={`font-bold ${
+            isCompleted ? 'text-emerald-300' : 'text-slate-400'
+          }`}>
+            {mission.progress}/{mission.target}
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Progress Ring */}
+      <div className="flex items-center gap-4 mb-3">
+        <ProgressRing
+          progress={progressPct}
+          size={40}
+          strokeWidth={3}
+          className="flex-shrink-0"
+        />
+        <div className="flex-1">
+          <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
+            <div
+              className={`h-2 transition-all duration-500 ${
+                isCompleted ? 'bg-gradient-to-r from-emerald-400 to-green-400' : 'bg-gradient-to-r from-cyan-400 to-blue-400'
+              }`}
+              style={{ width: `${progressPct}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rewards Section */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3 text-xs">
+          <span className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-900/30 border border-yellow-700/30 text-yellow-300">
+            <span>💎</span>
+            <AnimatedCounter value={mission.reward.rzn} suffix=" RZN" />
+          </span>
+          {mission.reward.items?.map((item, i) => (
+            <span key={i} className="flex items-center gap-1 px-2 py-1 rounded bg-blue-900/30 border border-blue-700/30 text-blue-300">
+              <span>📦</span>
+              <AnimatedCounter value={item.qty} suffix={` ${item.item}`} />
+            </span>
+          ))}
+        </div>
+
+        <button
+          onClick={() => onClaim(mission.id)}
+          disabled={busy || !isCompleted || isClaimed}
+          className={`relative overflow-hidden rounded border px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
+            isCompleted && !isClaimed && !busy
+              ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-emerald-100 hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-lg transform hover:scale-105'
+              : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+          }`}
+        >
+          <span className="relative z-10">
+            {busy ? 'CLAIMING...' : isClaimed ? 'CLAIMED' : isCompleted ? 'CLAIM REWARD' : 'LOCKED'}
+          </span>
+          {isCompleted && !isClaimed && !busy && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function DailyMissionsPanel({
+  me,
+  onMissionClaim,
+  busy = false,
+  push,
+}: {
+  me: Me | null;
+  onMissionClaim?: () => void;
+  busy?: boolean;
+  push: (arg: string | { message: string; type?: "success" | "error" | "warning" | "info"; description?: string }) => void;
+}) {
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [missionsBusy, setMissionsBusy] = useState(false);
+
+  const fetchMissions = async () => {
+    try {
+      const res = await fetch('/api/missions', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setMissions(data.missions || []);
+      }
+    } catch (e) {
+      console.warn('Failed to fetch missions:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchMissions();
+  }, [me]); // Refresh when me updates
+
+  const claimMission = async (missionId: string) => {
+    setMissionsBusy(true);
+    try {
+      const res = await fetch('/api/missions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ missionId }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        push({
+          message: `Mission completed! +${data.reward.rzn} RZN ${data.reward.items?.map((i: any) => `+${i.qty} ${i.item}`).join(' ') || ''}`,
+          type: 'success'
+        });
+        await fetchMissions(); // Refresh missions
+        onMissionClaim?.(); // Refresh other data
+      } else {
+        const error = await res.json();
+        push({ message: error.error || 'Failed to claim mission', type: 'error' });
+      }
+    } catch (e) {
+      push({ message: 'Failed to claim mission', type: 'error' });
+    } finally {
+      setMissionsBusy(false);
+    }
+  };
+
+  return (
+    <div className="group rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="h-3 w-3 rounded-full bg-yellow-400 animate-pulse"></div>
+          <h3 className="text-lg font-semibold text-cyan-100 tracking-wider">
+            DAILY NEURAL MISSIONS
+          </h3>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-yellow-300">
+          <span>⏰</span>
+          <span>Resets Daily</span>
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:gap-6">
+        {missions.map((mission) => (
+          <MissionCard
+            key={mission.id}
+            mission={mission}
+            onClaim={claimMission}
+            busy={missionsBusy || busy}
+          />
+        ))}
+      </div>
+
+      {missions.length === 0 && (
+        <div className="text-center py-8">
+          <div className="text-slate-400 text-sm mb-2">🎯</div>
+          <div className="text-slate-400 text-sm">
+            No missions available at the moment
+          </div>
+        </div>
+      )}
+
+      <div className="mt-6 text-xs text-slate-400 text-center border-t border-slate-700/30 pt-4">
+        <span className="inline-flex items-center gap-2">
+          <span>🌏</span>
+          <span>Missions reset daily at midnight UTC+8</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ===========================
+   Enhanced Crafting Panel
+   =========================== */
+
+function EnhancedCraftingPanel({
+  recipes = ENHANCED_RECIPES,
+  inventory = [],
+  equippedCore = 'none',
+  energy = 0,
+  onCraft,
+  busy = false,
+}: {
+  recipes?: Recipe[];
+  inventory?: { item: string; qty: number }[];
+  equippedCore?: string;
+  energy?: number;
+  onCraft?: (recipeKey: string) => void;
+  busy?: boolean;
+}) {
+  const [selectedCategory, setSelectedCategory] = React.useState<Recipe['category'] | 'ALL'>('ALL');
+  const [selectedTier, setSelectedTier] = React.useState<Recipe['tier'] | 'ALL'>('ALL');
+
+  const bonuses = CORE_CRAFTING_BONUSES[equippedCore] || CORE_CRAFTING_BONUSES.none;
+
+  const getInventoryQty = (item: string) => 
+    inventory.find(i => i.item === item)?.qty || 0;
+
+  const canCraft = (recipe: Recipe) => {
+    const adjustedEnergyCost = Math.max(1, recipe.energyCost - bonuses.energyReduction);
+    if (energy < adjustedEnergyCost) return false;
+    
+    return Object.entries(recipe.requires).every(([item, qty]) => 
+      getInventoryQty(item) >= qty
+    );
+  };
+
+  const calculateOutput = (recipe: Recipe) => {
+    const baseQty = Math.floor(recipe.baseOutput.qty * bonuses.baseYieldMultiplier);
+    const criticalChance = bonuses.criticalCraftChance;
+    const bonusItems = recipe.bonusOutput?.map(bonus => ({
+      ...bonus,
+      chance: Math.min(1, bonus.chance * bonuses.bonusChanceMultiplier)
+    })) || [];
+
+    return { baseQty, criticalChance, bonusItems };
+  };
+
+  const filteredRecipes = recipes.filter(recipe => {
+    if (selectedCategory !== 'ALL' && recipe.category !== selectedCategory) return false;
+    if (selectedTier !== 'ALL' && recipe.tier !== selectedTier) return false;
+    return true;
+  });
+
+  const getTierColor = (tier: Recipe['tier']) => {
+    switch (tier) {
+      case 'COMMON': return 'text-slate-300 border-slate-500/30';
+      case 'UNCOMMON': return 'text-green-300 border-green-500/30';
+      case 'RARE': return 'text-blue-300 border-blue-500/30';
+      case 'EPIC': return 'text-purple-300 border-purple-500/30';
+      default: return 'text-slate-300 border-slate-500/30';
+    }
+  };
+
+  const getCategoryIcon = (category: Recipe['category']) => {
+    switch (category) {
+      case 'CORE': return '🧠';
+      case 'AMPLIFIER': return '📡';
+      case 'CATALYST': return '⚗️';
+      case 'SIGIL': return '🔮';
+      case 'LENS': return '🔍';
+      default: return '⚙️';
+    }
+  };
+
+  return (
+    <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
+      <div className="flex items-center gap-2 mb-6">
+        <div className="h-3 w-3 rounded-full bg-purple-400 animate-pulse"></div>
+        <h3 className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
+          NEURAL CRAFTING LAB
+        </h3>
+      </div>
+
+      {/* Equipment Bonuses Display */}
+      {equippedCore !== 'none' && (
+        <div className="mb-6 rounded-lg border border-emerald-700/30 bg-emerald-950/20 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-emerald-300 font-mono text-sm">ACTIVE BONUSES</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs font-mono">
+            <div className="text-emerald-200">
+              Yield: +{Math.round((bonuses.baseYieldMultiplier - 1) * 100)}%
+            </div>
+            <div className="text-emerald-200">
+              Bonus Chance: +{Math.round((bonuses.bonusChanceMultiplier - 1) * 100)}%
+            </div>
+            <div className="text-emerald-200">
+              Energy: -{bonuses.energyReduction}
+            </div>
+            <div className="text-emerald-200">
+              Crit: {Math.round(bonuses.criticalCraftChance * 100)}%
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="mb-6 flex flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 font-mono">CATEGORY:</span>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value as any)}
+            className="rounded border border-slate-600/30 bg-slate-800/50 px-3 py-1 text-xs font-mono text-slate-200"
+          >
+            <option value="ALL">ALL</option>
+            <option value="CORE">CORE</option>
+            <option value="AMPLIFIER">AMPLIFIER</option>
+            <option value="CATALYST">CATALYST</option>
+            <option value="SIGIL">SIGIL</option>
+            <option value="LENS">LENS</option>
+          </select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 font-mono">TIER:</span>
+          <select
+            value={selectedTier}
+            onChange={(e) => setSelectedTier(e.target.value as any)}
+            className="rounded border border-slate-600/30 bg-slate-800/50 px-3 py-1 text-xs font-mono text-slate-200"
+          >
+            <option value="ALL">ALL</option>
+            <option value="COMMON">COMMON</option>
+            <option value="UNCOMMON">UNCOMMON</option>
+            <option value="RARE">RARE</option>
+            <option value="EPIC">EPIC</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Recipes Grid */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {filteredRecipes.map((recipe) => {
+          const craftable = canCraft(recipe);
+          const output = calculateOutput(recipe);
+          const adjustedEnergyCost = Math.max(1, recipe.energyCost - bonuses.energyReduction);
+
+          return (
+            <div
+              key={recipe.key}
+              className={`rounded-lg border p-4 transition-all duration-300 ${
+                craftable 
+                  ? 'border-slate-600/30 bg-slate-800/30 hover:bg-slate-700/30' 
+                  : 'border-slate-700/20 bg-slate-900/20 opacity-60'
+              }`}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{getCategoryIcon(recipe.category)}</span>
+                  <div>
+                    <div className="font-mono font-semibold text-slate-200">{recipe.name}</div>
+                    <div className={`inline-block rounded px-2 py-0.5 text-xs font-mono border ${getTierColor(recipe.tier)}`}>
+                      {recipe.tier}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right text-xs font-mono">
+                  <div className="text-orange-300">⚡ {adjustedEnergyCost}</div>
+                  {recipe.craftTime && (
+                    <div className="text-slate-400">⏱ {recipe.craftTime}s</div>
+                  )}
+                </div>
+              </div>
+
+              <p className="text-sm text-slate-300 mb-3">{recipe.desc}</p>
+
+              {/* Requirements */}
+              <div className="mb-3">
+                <div className="text-xs text-slate-400 font-mono mb-2">MATERIALS REQUIRED:</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(recipe.requires).map(([item, qty]) => {
+                    const have = getInventoryQty(item);
+                    const sufficient = have >= qty;
+                    return (
+                      <span
+                        key={item}
+                        className={`rounded px-2 py-1 text-xs font-mono border ${
+                          sufficient 
+                            ? 'border-green-600/30 bg-green-900/20 text-green-200' 
+                            : 'border-red-600/30 bg-red-900/20 text-red-200'
+                        }`}
+                      >
+                        {item} {have}/{qty}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Output Preview */}
+              <div className="mb-4">
+                <div className="text-xs text-slate-400 font-mono mb-2">CRAFTING OUTPUT:</div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-200">{recipe.baseOutput.item}</span>
+                    <span className="font-mono text-green-300">
+                      ×{output.baseQty}
+                      {output.criticalChance > 0 && (
+                        <span className="text-yellow-300 ml-1">
+                          (+{Math.round(output.criticalChance * 100)}% double)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                  {output.bonusItems.map((bonus, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs text-slate-400">
+                      <span>{bonus.item}</span>
+                      <span>×{bonus.qty} ({Math.round(bonus.chance * 100)}%)</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <button
+                onClick={() => onCraft?.(recipe.key)}
+                disabled={busy || !craftable}
+                className={`w-full rounded border px-4 py-2 font-mono text-sm font-semibold transition-all duration-300 ${
+                  craftable && !busy
+                    ? 'border-purple-500/50 bg-purple-900/50 text-purple-100 hover:bg-purple-800/50 hover:shadow-purple-500/20 hover:shadow-lg'
+                    : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                {busy ? 'CRAFTING...' : craftable ? 'CRAFT' : 'INSUFFICIENT MATERIALS'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {filteredRecipes.length === 0 && (
+        <div className="text-center py-8">
+          <div className="text-slate-400 font-mono text-sm">
+            // NO CRAFTING BLUEPRINTS MATCH CURRENT FILTERS
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -347,7 +1131,6 @@ function WalletGate({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-gradient-to-r from-slate-900 to-cyan-950/30 px-4 py-2">
             <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
-            {/* uses the existing short() declared earlier in page.tsx */}
             <div className="font-mono text-cyan-100 tracking-wider">{short(me.wallet)}</div>
           </div>
           <button
@@ -371,35 +1154,16 @@ function WalletGate({
 }
 
 
-
-
 /* ===========================
    Main Page
    =========================== */
-
-const RECIPES: Recipe[] = [
-  {
-    key: 'REC_EAR_SIGIL_C',
-    requires: { RUNE_A: 2, RUNE_B: 1, CAT_X: 1 },
-    desc: 'Align opposite charges to etch a low-intensity ear sigil.',
-  },
-  {
-    key: 'REC_EAR_SIGIL_R',
-    requires: { RUNE_C: 2, RUNE_D: 1, CAT_Y: 1 },
-    desc: 'Recreate the 3-beat resonance to engrave a rare sigil.',
-  },
-  {
-    key: 'REC_IRIS_LENS_E',
-    requires: { RUNE_D: 2, RUNE_E: 1, CAT_Z: 1 },
-    desc: 'Set lens shutters within the Gamma threshold window.',
-  },
-];
 
 export default function PlayPage(): JSX.Element {
   const [me, setMe] = React.useState<Me | null>(null);
   const [inv, setInv] = React.useState<InvRow[]>([]);
   const [lb, setLb] = React.useState<LbRow[]>([]);
   const [risk, setRisk] = React.useState<Risk>('STANDARD');
+  const [equippedCore, setEquippedCore] = React.useState<string>('none');
 
   const [scan, setScan] = React.useState<ScanRun>(null);
   const [busy, setBusy] = React.useState(false);
@@ -438,6 +1202,7 @@ export default function PlayPage(): JSX.Element {
       setMe(null);
     }
   }, []);
+  
   const refreshInv = React.useCallback(async () => {
     try {
       const data = await fetchJSON<{ items: InvRow[] }>('/api/inventory', { cache: 'no-store' });
@@ -446,6 +1211,7 @@ export default function PlayPage(): JSX.Element {
       setInv([]);
     }
   }, []);
+  
   const refreshLb = React.useCallback(async () => {
     try {
       const data = await fetchJSON<{ rows: LbRow[] }>('/api/leaderboard', { cache: 'no-store' });
@@ -467,12 +1233,22 @@ export default function PlayPage(): JSX.Element {
     }
   }, []);
 
+  const refreshEquipment = React.useCallback(async () => {
+    try {
+      const data = await fetchJSON<{ core: string }>('/api/equip', { cache: 'no-store' });
+      setEquippedCore(data.core || 'none');
+    } catch {
+      setEquippedCore('none');
+    }
+  }, []);
+
   React.useEffect(() => {
     refreshMe();
     refreshInv();
     refreshLb();
     refreshShop();
-  }, [refreshMe, refreshInv, refreshLb, refreshShop]);
+    refreshEquipment();
+  }, [refreshMe, refreshInv, refreshLb, refreshShop, refreshEquipment]);
 
   // Actions
   async function doRefuel() {
@@ -568,8 +1344,8 @@ export default function PlayPage(): JSX.Element {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key }),
       });
-      await Promise.all([refreshMe(), refreshInv(), refreshLb()]);
-      push({ message: 'Synthesis complete.', type: 'success' });
+      await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshEquipment()]);
+      push({ message: 'Crafting complete.', type: 'success' });
     } catch (e: any) {
       push({ message: e?.message || 'Craft failed', type: 'error' });
     } finally {
@@ -631,7 +1407,7 @@ export default function PlayPage(): JSX.Element {
           <WalletGate
             me={me}
             onAuthed={async () => {
-              await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshShop()]);
+              await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshShop(), refreshEquipment()]);
               push({ message: 'Neural link established.', type: 'info' });
             }}
             pushToast={push}
@@ -641,77 +1417,127 @@ export default function PlayPage(): JSX.Element {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Control Panel */}
-            <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="flex items-center gap-2">
+            {/* Enhanced Control Panel */}
+            <div className="group rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
                   <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></div>
-                  <span className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
+                  <span className="text-lg font-semibold text-cyan-100 tracking-wider">
                     LABORATORY CONTROL PANEL
                   </span>
                 </div>
+                <div className="flex items-center gap-2 text-xs text-emerald-300">
+                  <span>🔬</span>
+                  <span>Neural Interface Active</span>
+                </div>
               </div>
 
-              {/* Resource Display */}
-              <div className="mb-6 grid grid-cols-2 gap-4">
-                <div className="rounded-lg border border-cyan-700/30 bg-slate-800/50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-cyan-300 font-mono text-sm">ENERGY CORE</span>
+              {/* Enhanced Resource Display */}
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="group relative rounded-lg border border-cyan-700/30 bg-gradient-to-br from-slate-800/50 to-cyan-950/30 p-4 transition-all duration-300 hover:border-cyan-600/40 hover:shadow-cyan-500/10 hover:shadow-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-cyan-300 text-sm font-semibold">⚡ ENERGY CORE</span>
+                    </div>
+                    <ProgressRing
+                      progress={Math.min(100, (energy / 100) * 100)}
+                      size={32}
+                      strokeWidth={3}
+                    />
                   </div>
-                  <div className="text-2xl font-bold text-cyan-100 font-mono">{energy}</div>
-                  <div className="h-2 bg-slate-700 rounded-full mt-2">
+                  <div className="flex items-end gap-3 mb-2">
+                    <AnimatedCounter
+                      value={energy}
+                      className="text-2xl sm:text-3xl font-bold text-cyan-100"
+                    />
+                    <span className="text-cyan-300/70 text-sm font-medium mb-1">/100</span>
+                  </div>
+                  <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div
                       className="h-2 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, (energy / 100) * 100)}%` }}
                     ></div>
                   </div>
                 </div>
-                <div className="rounded-lg border border-emerald-700/30 bg-slate-800/50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-emerald-300 font-mono text-sm">RZN UNITS</span>
+
+                <div className="group relative rounded-lg border border-emerald-700/30 bg-gradient-to-br from-slate-800/50 to-emerald-950/30 p-4 transition-all duration-300 hover:border-emerald-600/40 hover:shadow-emerald-500/10 hover:shadow-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-300 text-sm font-semibold">💎 RZN UNITS</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-emerald-300/70">
+                      <span>💰</span>
+                      <span>Currency</span>
+                    </div>
                   </div>
-                  <div className="text-2xl font-bold text-emerald-100 font-mono">{rzn}</div>
-                  <div className="text-xs text-emerald-300/70 font-mono mt-1">NEURAL CURRENCY</div>
+                  <AnimatedCounter
+                    value={rzn}
+                    className="text-2xl sm:text-3xl font-bold text-emerald-100 block mb-2"
+                  />
+                  <div className="text-xs text-emerald-300/70 font-medium">
+                    Neural Resonance Network tokens
+                  </div>
                 </div>
               </div>
 
-              {/* Scan Operations */}
+              {/* Enhanced Scan Operations */}
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-mono text-sm text-cyan-300 tracking-wider">
-                    01 // NEURAL SCANNING
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="flex items-center gap-2 text-sm text-cyan-300 font-semibold tracking-wider">
+                    <span className="w-6 h-6 rounded-full bg-cyan-500/20 flex items-center justify-center text-xs font-bold">1</span>
+                    NEURAL SCANNING PROTOCOLS
                   </span>
                 </div>
-                <div className="flex flex-wrap gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   <button
                     onClick={startScan}
                     disabled={busy || energy < 8}
-                    className={`group relative overflow-hidden rounded-lg border px-6 py-3 font-mono font-semibold transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-lg border px-4 py-3 font-semibold transition-all duration-300 transform hover:scale-105 ${
                       energy >= 8
                         ? 'border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/25 hover:shadow-lg'
                         : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
                     }`}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                    <span className="relative z-10">INITIATE SCAN [-8 ENERGY]</span>
+                    <div className="relative z-10 flex items-center justify-center gap-2">
+                      <span className="text-lg">🔍</span>
+                      <div>
+                        <div className="text-sm font-semibold">INITIATE SCAN</div>
+                        <div className="text-xs opacity-80">-8 Energy</div>
+                      </div>
+                    </div>
                   </button>
+
                   <button
                     onClick={resumeScan}
                     disabled={busy}
-                    className="group relative overflow-hidden rounded-lg border border-slate-500/50 bg-slate-800 px-4 py-3 font-mono text-slate-200 hover:bg-slate-700 transition-all duration-300"
+                    className="group relative overflow-hidden rounded-lg border border-slate-500/50 bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3 text-slate-200 hover:from-slate-700 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
                   >
-                    <span className="relative z-10">RESUME</span>
+                    <div className="relative z-10 flex items-center justify-center gap-2">
+                      <span className="text-lg">▶️</span>
+                      <div>
+                        <div className="text-sm font-semibold">RESUME SCAN</div>
+                        <div className="text-xs opacity-80">Continue</div>
+                      </div>
+                    </div>
                   </button>
+
                   <button
                     onClick={doRefuel}
                     disabled={busy || rzn < 5}
-                    className={`group relative overflow-hidden rounded-lg border px-4 py-3 font-mono transition-all duration-300 ${
+                    className={`group relative overflow-hidden rounded-lg border px-4 py-3 transition-all duration-300 transform hover:scale-105 ${
                       rzn >= 5
-                        ? 'border-emerald-500/50 bg-emerald-900/50 text-emerald-100 hover:bg-emerald-800/50'
+                        ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-emerald-100 hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-lg'
                         : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
                     }`}
                   >
-                    <span className="relative z-10">REFUEL [+10 ENERGY / -5 RZN]</span>
+                    <div className="relative z-10 flex items-center justify-center gap-2">
+                      <span className="text-lg">⛽</span>
+                      <div>
+                        <div className="text-sm font-semibold">REFUEL CORE</div>
+                        <div className="text-xs opacity-80">+10 Energy / -5 RZN</div>
+                      </div>
+                    </div>
                   </button>
                 </div>
               </div>
@@ -723,48 +1549,79 @@ export default function PlayPage(): JSX.Element {
                 </div>
               )}
 
-              {/* Risk Selection */}
+              {/* Enhanced Risk Selection */}
               <div className="mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="font-mono text-sm text-cyan-300 tracking-wider">
-                    02 // RISK PROTOCOL
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="flex items-center gap-2 text-sm text-cyan-300 font-semibold tracking-wider">
+                    <span className="w-6 h-6 rounded-full bg-orange-500/20 flex items-center justify-center text-xs font-bold">2</span>
+                    RISK ASSESSMENT MATRIX
                   </span>
                 </div>
-                <div className="flex gap-3">
-                  {(['SAFE', 'STANDARD', 'OVERCLOCK'] as Risk[]).map((r) => (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {([{id: 'SAFE', icon: '🛡️', name: 'SAFE', desc: 'Low risk, stable'},
+                     {id: 'STANDARD', icon: '⚖️', name: 'STANDARD', desc: 'Balanced approach'},
+                     {id: 'OVERCLOCK', icon: '⚡', name: 'OVERCLOCK', desc: 'High risk, high reward'}] as const).map((r) => (
                     <button
-                      key={r}
-                      onClick={() => setRisk(r)}
-                      className={`rounded-lg border px-4 py-2 font-mono text-sm font-semibold transition-all duration-300 ${
-                        risk === r
-                          ? 'border-orange-500/50 bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-orange-500/25 shadow-md'
-                          : 'border-slate-600/30 bg-slate-800/50 text-slate-300 hover:border-orange-500/30 hover:bg-slate-700/50'
+                      key={r.id}
+                      onClick={() => setRisk(r.id as Risk)}
+                      className={`group relative rounded-lg border p-4 text-left transition-all duration-300 transform hover:scale-105 ${
+                        risk === r.id
+                          ? 'border-orange-500/50 bg-gradient-to-br from-orange-600/30 to-red-600/30 text-white shadow-orange-500/25 shadow-lg'
+                          : 'border-slate-600/30 bg-gradient-to-br from-slate-800/50 to-slate-900/30 text-slate-300 hover:border-orange-500/30 hover:bg-slate-700/50'
                       }`}
                     >
-                      {r}
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="text-xl">{r.icon}</span>
+                        <div>
+                          <div className="text-sm font-semibold">{r.name}</div>
+                          <div className="text-xs opacity-80">{r.desc}</div>
+                        </div>
+                      </div>
+                      {risk === r.id && (
+                        <div className="absolute top-2 right-2">
+                          <div className="w-3 h-3 rounded-full bg-orange-400 animate-pulse"></div>
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Stabilize */}
-              <button
-                onClick={stabilize}
-                disabled={busy || energy < 12}
-                className={`group relative overflow-hidden w-full rounded-lg border px-6 py-4 font-mono font-bold text-lg transition-all duration-300 ${
-                  energy >= 12
-                    ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-lg'
-                    : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                }`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                <span className="relative z-10">STABILIZE ANOMALY [-12 ENERGY]</span>
-              </button>
+              {/* Enhanced Stabilize Button */}
+              <div className="relative">
+                <button
+                  onClick={stabilize}
+                  disabled={busy || energy < 12}
+                  className={`group relative overflow-hidden w-full rounded-xl border px-6 py-6 font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
+                    energy >= 12
+                      ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-xl'
+                      : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                  }`}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <div className="relative z-10 flex items-center justify-center gap-3">
+                    <span className="text-2xl">🌀</span>
+                    <div>
+                      <div className="text-lg font-bold">STABILIZE ANOMALY</div>
+                      <div className="text-sm opacity-90">Deploy neural stabilization protocols (-12 Energy)</div>
+                    </div>
+                  </div>
+                  {energy >= 12 && (
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/0 via-emerald-400/10 to-emerald-500/0 animate-pulse"></div>
+                  )}
+                </button>
+              </div>
 
-              <p className="mt-4 text-xs text-slate-400 font-mono">
-                // Scans unlock neural patterns for stabilization. Stabilize to earn RZN and rare
-                materials.
-              </p>
+              <div className="mt-6 p-4 rounded-lg border border-slate-700/30 bg-slate-800/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-cyan-400">💡</span>
+                  <span className="text-sm font-semibold text-slate-300">Protocol Information</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Neural scans unlock quantum patterns required for anomaly stabilization.
+                  Successfully stabilizing anomalies generates RZN rewards and rare crafting materials.
+                </p>
+              </div>
             </div>
 
             {/* Inventory */}
@@ -793,61 +1650,37 @@ export default function PlayPage(): JSX.Element {
                     </div>
                   ))}
                 </div>
-
               )}
             </div>
+
             <div className="mt-4">
-                    <Link
-                      href="/play/crafting"
-                      className="group inline-flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-400/5 px-3 py-2 text-xs font-semibold tracking-wide text-cyan-300 hover:bg-cyan-400/10 hover:border-cyan-400/40 transition-colors"
-                    >
-                      <svg
-                        className="h-4 w-4 opacity-80 group-hover:opacity-100"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                        <circle cx="12" cy="12" r="3" />
-                      </svg>
-                      <span>Open Crafting &amp; Equipment</span>
-                    </Link>
-                  </div>
-
-
-            {/* Crafting */}
-            <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-purple-400 animate-pulse"></div>
-                <h3 className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
-                  SYNTHESIS PROTOCOLS
-                </h3>
-              </div>
-              <div className="space-y-4">
-                {RECIPES.map((r) => (
-                  <div key={r.key} className="rounded-lg border border-slate-600/30 bg-slate-800/30 p-4">
-                    <div className="font-mono font-semibold text-purple-200 mb-2">{r.key}</div>
-                    <div className="text-sm text-slate-300 mb-3">{r.desc}</div>
-                    <div className="mb-3 text-xs text-slate-400 font-mono">
-                      // REQUIRES:{' '}
-                      {Object.entries(r.requires)
-                        .map(([k, v]) => `${k}×${v}`)
-                        .join(', ')}
-                    </div>
-                    <button
-                      onClick={() => craft(r.key)}
-                      disabled={busy}
-                      className="group relative overflow-hidden rounded border border-purple-500/50 bg-purple-900/50 px-4 py-2 font-mono text-purple-100 hover:bg-purple-800/50 transition-all duration-300"
-                    >
-                      <span className="relative z-10">SYNTHESIZE</span>
-                    </button>
-                  </div>
-                ))}
-              </div>
+              <Link
+                href="/play/crafting"
+                className="group inline-flex items-center gap-2 rounded-md border border-cyan-400/30 bg-cyan-400/5 px-3 py-2 text-xs font-semibold tracking-wide text-cyan-300 hover:bg-cyan-400/10 hover:border-cyan-400/40 transition-colors"
+              >
+                <svg
+                  className="h-4 w-4 opacity-80 group-hover:opacity-100"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <span>Open Neural Crafting Laboratory</span>
+              </Link>
             </div>
+
+            {/* Daily Missions */}
+            <DailyMissionsPanel
+              me={me}
+              onMissionClaim={() => refreshMe()}
+              busy={busy}
+              push={push}
+            />
           </div>
 
           {/* Right column */}
@@ -894,11 +1727,6 @@ export default function PlayPage(): JSX.Element {
                           <button
                             onClick={() => buy(it.id)}
                             disabled={disabled}
-                            className={`px-4 py-2 rounded border font-mono text-sm transition-all ${
-                              disabled
-                                ? 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
-                                : 'border-emerald-500/50 bg-emerald-900/50 text-emerald-100 hover:bg-emerald-800/50'
-                            }`}
                           >
                             {it.purchased
                               ? 'OWNED'
@@ -961,6 +1789,10 @@ export default function PlayPage(): JSX.Element {
                 <div className="flex items-start gap-3">
                   <span className="text-cyan-400 font-bold">06</span>
                   <span>Collect RZN rewards and materials</span>
+                </div>
+                <div className="flex items-start gap-3">
+                  <span className="text-cyan-400 font-bold">07</span>
+                  <span>Craft cores and equipment for bonuses</span>
                 </div>
               </div>
             </div>
@@ -1047,10 +1879,10 @@ export default function PlayPage(): JSX.Element {
               </div>
 
               <div className="mb-6">
-                <div className="font-mono font-semibold text-cyan-200 mb-3">MATERIAL SYNTHESIS</div>
+                <div className="font-mono font-semibold text-cyan-200 mb-3">MATERIAL REWARDS</div>
                 {stabRes.items.length === 0 ? (
                   <div className="text-sm text-slate-400 font-mono bg-slate-800/30 rounded-lg p-3 border border-slate-700/30">
-                    // NO MATERIALS SYNTHESIZED
+                    // NO MATERIALS OBTAINED
                   </div>
                 ) : (
                   <div className="space-y-2">

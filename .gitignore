@@ -37,3 +37,14 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Discord Integration (keep separate for future release)
+src/lib/discord.ts
+src/app/api/auth/discord/
+src/app/api/discord/
+.env.discord.example
+DISCORD_SETUP.md
+discord-bot.js
+deploy-discord-commands.js
+package-discord.json
+discord_integration_migration.sql

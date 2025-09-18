@@ -11,11 +11,18 @@ export async function GET() {
     const wallet = await requireWallet();
     const { data, error } = await supabase
       .from('equipment')
-      .select('core')
+      .select('core, amplifier, catalyst, sigil, lens')
       .eq('wallet', wallet)
       .maybeSingle();
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ core: data?.core ?? 'none' });
+
+    return NextResponse.json({
+      core: data?.core ?? 'none',
+      amplifier: data?.amplifier ?? 'none',
+      catalyst: data?.catalyst ?? 'none',
+      sigil: data?.sigil ?? 'none',
+      lens: data?.lens ?? 'none',
+    });
   } catch (e) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
@@ -26,24 +33,51 @@ export async function POST(req: NextRequest) {
   assertSameOrigin(req);
   try {
     const wallet = await requireWallet();
-    const { coreId } = await req.json();
+    const { slot, itemId } = await req.json();
 
-    const { data, error } = await supabase.rpc('equip_core', {
-      p_wallet: wallet,
-      p_core: String(coreId || 'none'),
-    });
-    if (error) {
-      const msg = String(error.message || '').toLowerCase();
-      if (msg.includes('invalid_core')) return NextResponse.json({ error: 'invalid_core' }, { status: 400 });
-      if (msg.includes('missing_item')) return NextResponse.json({ error: 'missing_item' }, { status: 400 });
-      return NextResponse.json({ error: 'equip_failed' }, { status: 500 });
+    // Validate slot
+    const validSlots = ['core', 'amplifier', 'catalyst', 'sigil', 'lens'];
+    if (!validSlots.includes(slot)) {
+      return NextResponse.json({ error: 'invalid_slot' }, { status: 400 });
     }
 
-    const row = Array.isArray(data) ? data[0] : data;
-    logMutation('equip_core', { wallet, core: row?.core ?? 'none' });
-    return NextResponse.json({ ok: true, core: row?.core ?? 'none' });
+    // Validate item exists in inventory if not 'none'
+    if (itemId !== 'none') {
+      const { data: invData, error: invError } = await supabase
+        .from('inventory')
+        .select('qty')
+        .eq('wallet', wallet)
+        .eq('item', itemId)
+        .maybeSingle();
+
+      if (invError || !invData || invData.qty <= 0) {
+        return NextResponse.json({ error: 'missing_item' }, { status: 400 });
+      }
+    }
+
+    // Update equipment
+    const updateData = { [slot]: itemId };
+    const { data, error } = await supabase
+      .from('equipment')
+      .upsert({ wallet, ...updateData, updated_at: new Date().toISOString() }, { onConflict: 'wallet' })
+      .select()
+      .single();
+
+    if (error) return NextResponse.json({ error: 'equip_failed' }, { status: 500 });
+
+    // Return full equipment state
+    const equipment = {
+      core: data?.core ?? 'none',
+      amplifier: data?.amplifier ?? 'none',
+      catalyst: data?.catalyst ?? 'none',
+      sigil: data?.sigil ?? 'none',
+      lens: data?.lens ?? 'none',
+    };
+
+    logMutation('equip_item', { wallet, slot, item: itemId });
+    return NextResponse.json({ ok: true, equipment });
   } catch (e) {
-    reportError(e, { route: 'equip_core' });
+    reportError(e, { route: 'equip_item' });
     return NextResponse.json({ error: 'internal' }, { status: 500 });
   }
 }
