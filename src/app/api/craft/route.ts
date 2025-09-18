@@ -191,7 +191,7 @@ export async function POST(req: Request) {
 
   const { data: statsRow, error: statsErr } = await supabase
     .from('season_stats')
-    .select('crafts')
+    .select('crafts, rzn')
     .eq('wallet', wallet)
     .maybeSingle();
 
