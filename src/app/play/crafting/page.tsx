@@ -18,7 +18,8 @@ import {
   CheckCircle,
   Gem,
   FlaskRound,
-  Beaker
+  Beaker,
+  Microscope
 } from 'lucide-react';
 
 /* ===========================
@@ -439,13 +440,13 @@ const Panel = ({ children, className = '', hover = true }: {
 
 const SectionTitle = ({ children, icon, description }: {
   children: React.ReactNode;
-  icon?: string;
+  icon?: React.ReactNode;
   description?: string;
 }) => (
   <div className="mb-4">
     <div className="flex items-center gap-3 mb-2">
       {icon && <span className="text-lg">{icon}</span>}
-      <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+      <span className="h-2 w-2 rounded-full bg-emerald-400" />
       <span className="text-sm font-semibold tracking-wider text-slate-200 uppercase">{children}</span>
     </div>
     {description && (
@@ -669,7 +670,7 @@ function EnhancedCraftingPanel({
   return (
     <Panel className="p-4 md:p-6">
       <SectionTitle
-        icon="🔬"
+        icon={<Microscope className="w-4 h-4" />}
         description="Advanced neural crafting protocols with quantum enhancement systems"
       >
         NEURAL CRAFTING LABORATORY
@@ -891,7 +892,7 @@ function EquipmentSlot({
 }: {
   slot: keyof EquipGet;
   title: string;
-  icon: string;
+  icon: React.ReactNode;
   equipment: EquipGet;
   inventory: { item: string; qty: number }[];
   onEquip: (slot: keyof EquipGet, itemId: string) => void;
