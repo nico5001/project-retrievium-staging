@@ -4,7 +4,74 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
+import {
+  Zap,
+  Gem,
+  Search,
+  Play,
+  RotateCcw,
+  Activity,
+  Package,
+  Trophy,
+  Users,
+  CheckCircle,
+  AlertCircle,
+  Settings,
+  Star,
+  Atom,
+  Microscope,
+  FlaskConical,
+  Beaker,
+  Battery,
+  Wind,
+  Target,
+  Shield,
+  Scale,
+  DollarSign,
+  PlayCircle,
+  Brain,
+  Radio,
+  FlaskRound,
+  Clock
+} from 'lucide-react';
 
+/* ===========================
+   Simplified Color Palette
+   =========================== */
+const colors = {
+  primary: {
+    50: 'rgb(240 249 255)',
+    100: 'rgb(224 242 254)',
+    500: 'rgb(59 130 246)',
+    600: 'rgb(37 99 235)',
+    700: 'rgb(29 78 216)',
+    900: 'rgb(30 58 138)',
+  },
+  neutral: {
+    50: 'rgb(248 250 252)',
+    100: 'rgb(241 245 249)',
+    300: 'rgb(148 163 184)',
+    400: 'rgb(100 116 139)',
+    500: 'rgb(71 85 105)',
+    600: 'rgb(51 65 85)',
+    700: 'rgb(35 45 55)',
+    800: 'rgb(30 35 45)',
+    900: 'rgb(15 23 42)',
+  },
+  success: {
+    400: 'rgb(74 222 128)',
+    500: 'rgb(34 197 94)',
+    600: 'rgb(22 163 74)',
+  },
+  warning: {
+    400: 'rgb(251 191 36)',
+    500: 'rgb(245 158 11)',
+  },
+  error: {
+    400: 'rgb(248 113 113)',
+    500: 'rgb(239 68 68)',
+  }
+};
 
 /* ===========================
    Types
@@ -25,6 +92,13 @@ type Me = {
 type InvRow = { item: string; qty: number };
 
 type LbRow = { wallet: string; rzn: number; scans?: number; stabilizes?: number; crafts?: number };
+
+type DiscordLink = {
+  discord_username: string;
+  discord_discriminator: string;
+  discord_avatar: string | null;
+  discord_global_name: string | null;
+};
 
 type ScanRun = { runId: string; seed: string } | null;
 
@@ -445,9 +519,24 @@ function ScanMemory({
   const rng = React.useMemo(() => mulberry32(hashStringToSeed(seed || 'seedless')), [seed]);
 
   const faces = React.useMemo(() => {
-    const base = ['🧬', '🔬', '🧪', '⚗️', '🔋', '💎', '⚡', '🌀'];
+    const base = ['🧬', '🔬', '🧪', '⚗️', '🔋', '💎', '⚡', '🌀']; // Icons rendered in JSX below
     return base.slice(0, 8);
   }, []);
+
+  const getIconComponent = (emoji: string) => {
+    const iconProps = { className: "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" };
+    switch (emoji) {
+      case '🧬': return <Atom {...iconProps} />;
+      case '🔬': return <Microscope {...iconProps} />;
+      case '🧪': return <FlaskConical {...iconProps} />;
+      case '⚗️': return <Beaker {...iconProps} />;
+      case '🔋': return <Battery {...iconProps} />;
+      case '💎': return <Gem {...iconProps} />;
+      case '⚡': return <Zap {...iconProps} />;
+      case '🌀': return <Wind {...iconProps} />;
+      default: return <Settings {...iconProps} />;
+    }
+  };
 
   const deck = React.useMemo(() => {
     const arr = [...faces, ...faces];
@@ -511,12 +600,12 @@ function ScanMemory({
   const cols = 4;
 
   return (
-    <div className="group relative rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-cyan-500/10 to-transparent animate-pulse"></div>
+    <div className="relative rounded-xl border border-primary-500/30 bg-gradient-to-br from-neutral-900 via-neutral-900 to-primary-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm ">
+      <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-primary-500/5 to-transparent"></div>
       <div className="relative z-10">
         <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-3 w-3 rounded-full bg-cyan-400 animate-pulse"></div>
+            <div className="h-3 w-3 rounded-full bg-primary-400"></div>
             <div className="text-base sm:text-lg font-semibold text-cyan-100 tracking-wider">
               NEURAL SCAN MATRIX
             </div>
@@ -542,26 +631,23 @@ function ScanMemory({
                 key={i}
                 onClick={() => clickCard(i)}
                 disabled={disabled}
-                className={`group relative h-16 sm:h-20 md:h-24 rounded-lg border-2 transition-all duration-300 text-xl sm:text-2xl md:text-3xl flex items-center justify-center overflow-hidden ${
+                className={`relative h-16 sm:h-20 md:h-24 rounded-lg border-2 text-xl sm:text-2xl md:text-3xl flex items-center justify-center overflow-hidden ${
                   isMatched
-                    ? 'border-emerald-400/60 bg-gradient-to-br from-emerald-900/40 to-emerald-800/20 shadow-emerald-400/20 shadow-lg'
+                    ? 'border-success-400/60 bg-gradient-to-br from-success-900/40 to-success-800/20 shadow-success-400/20 shadow-lg'
                     : up
-                    ? 'border-cyan-400/60 bg-gradient-to-br from-cyan-900/40 to-cyan-800/20 shadow-cyan-400/20 shadow-lg'
-                    : 'border-slate-600/40 bg-gradient-to-br from-slate-800 to-slate-900 hover:border-cyan-500/50 hover:shadow-cyan-500/10 hover:shadow-lg'
+                    ? 'border-primary-400/60 bg-gradient-to-br from-primary-900/40 to-primary-800/20 shadow-primary-400/20 shadow-lg'
+                    : 'border-neutral-600/40 bg-gradient-to-br from-neutral-800 to-neutral-900 hover:border-primary-500/50  '
                 } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
               >
                 <div className="absolute inset-0 opacity-10">
-                  <div className="h-full w-full bg-gradient-to-br from-transparent via-cyan-500/20 to-transparent"></div>
+                  <div className="h-full w-full bg-gradient-to-br from-transparent via-primary-500/20 to-transparent"></div>
                 </div>
-                <span className={`relative z-10 transition-all duration-300 ${up ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
-                  {face}
+                <span className={`relative z-10 ${up ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
+                  {getIconComponent(face)}
                 </span>
-                <span className={`absolute inset-0 flex items-center justify-center transition-all duration-300 text-slate-500 ${up ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`}>
+                <span className={`absolute inset-0 flex items-center justify-center text-slate-200 ${up ? 'opacity-0 scale-75' : 'opacity-100 scale-100'}`}>
                   ◊
                 </span>
-                {!up && !disabled && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                )}
               </button>
             );
           })}
@@ -606,9 +692,9 @@ function MissionCard({ mission, onClaim, busy }: {
 
   return (
     <div
-      className={`group relative rounded-lg border p-4 transition-all duration-300 hover:scale-[1.02] ${
+      className={`relative rounded-lg border p-4 transition-all duration-200 hover:border-slate-400/50 ${
         isCompleted
-          ? 'border-emerald-500/50 bg-gradient-to-br from-emerald-950/30 to-emerald-900/20'
+          ? 'border-success-500/50 bg-gradient-to-br from-success-950/30 to-success-900/20'
           : 'border-slate-600/30 bg-gradient-to-br from-slate-800/30 to-slate-900/20 hover:border-slate-500/40'
       }`}
     >
@@ -618,16 +704,16 @@ function MissionCard({ mission, onClaim, busy }: {
           <div className="flex items-center gap-2 mb-1">
             <div className="text-base font-semibold text-slate-200">{mission.title}</div>
             {isCompleted && (
-              <div className="animate-pulse">
+              <div className="">
                 <span className="text-emerald-400 text-sm">✓</span>
               </div>
             )}
           </div>
-          <div className="text-sm text-slate-400">{mission.description}</div>
+          <div className="text-sm text-slate-200">{mission.description}</div>
         </div>
         <div className="text-right text-xs font-mono ml-4">
           <div className={`font-bold ${
-            isCompleted ? 'text-emerald-300' : 'text-slate-400'
+            isCompleted ? 'text-emerald-300' : 'text-slate-200'
           }`}>
             {mission.progress}/{mission.target}
           </div>
@@ -658,12 +744,12 @@ function MissionCard({ mission, onClaim, busy }: {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs">
           <span className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-900/30 border border-yellow-700/30 text-yellow-300">
-            <span>💎</span>
+            <Gem className="w-4 h-4" />
             <AnimatedCounter value={mission.reward.rzn} suffix=" RZN" />
           </span>
           {mission.reward.items?.map((item, i) => (
             <span key={i} className="flex items-center gap-1 px-2 py-1 rounded bg-blue-900/30 border border-blue-700/30 text-blue-300">
-              <span>📦</span>
+              <Package className="w-4 h-4" />
               <AnimatedCounter value={item.qty} suffix={` ${item.item}`} />
             </span>
           ))}
@@ -672,18 +758,15 @@ function MissionCard({ mission, onClaim, busy }: {
         <button
           onClick={() => onClaim(mission.id)}
           disabled={busy || !isCompleted || isClaimed}
-          className={`relative overflow-hidden rounded border px-3 py-1.5 text-xs font-semibold transition-all duration-300 ${
+          className={`relative overflow-hidden rounded border px-3 py-1.5 text-xs font-semibold ${
             isCompleted && !isClaimed && !busy
-              ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-emerald-100 hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-lg transform hover:scale-105'
-              : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+              ? 'border-success-500/50 bg-gradient-to-r from-success-600 to-success-500 text-success-100 hover:from-success-500 hover:to-success-400 hover:shadow-success-500/25 '
+              : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
           }`}
         >
           <span className="relative z-10">
             {busy ? 'CLAIMING...' : isClaimed ? 'CLAIMED' : isCompleted ? 'CLAIM REWARD' : 'LOCKED'}
           </span>
-          {isCompleted && !isClaimed && !busy && (
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-          )}
         </button>
       </div>
     </div>
@@ -750,10 +833,10 @@ function DailyMissionsPanel({
   };
 
   return (
-    <div className="group rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
+    <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm ">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="h-3 w-3 rounded-full bg-yellow-400 animate-pulse"></div>
+          <div className="h-3 w-3 rounded-full bg-yellow-400 "></div>
           <h3 className="text-lg font-semibold text-cyan-100 tracking-wider">
             DAILY NEURAL MISSIONS
           </h3>
@@ -777,14 +860,14 @@ function DailyMissionsPanel({
 
       {missions.length === 0 && (
         <div className="text-center py-8">
-          <div className="text-slate-400 text-sm mb-2">🎯</div>
-          <div className="text-slate-400 text-sm">
+          <div className="text-slate-200 text-sm mb-2"><Target className="w-4 h-4" /></div>
+          <div className="text-slate-200 text-sm">
             No missions available at the moment
           </div>
         </div>
       )}
 
-      <div className="mt-6 text-xs text-slate-400 text-center border-t border-slate-700/30 pt-4">
+      <div className="mt-6 text-xs text-slate-200 text-center border-t border-slate-700/30 pt-4">
         <span className="inline-flex items-center gap-2">
           <span>🌏</span>
           <span>Missions reset daily at midnight UTC+8</span>
@@ -858,20 +941,21 @@ function EnhancedCraftingPanel({
   };
 
   const getCategoryIcon = (category: Recipe['category']) => {
+    const iconProps = { className: "w-4 h-4" };
     switch (category) {
-      case 'CORE': return '🧠';
-      case 'AMPLIFIER': return '📡';
-      case 'CATALYST': return '⚗️';
-      case 'SIGIL': return '🔮';
-      case 'LENS': return '🔍';
-      default: return '⚙️';
+      case 'CORE': return <Brain {...iconProps} />;
+      case 'AMPLIFIER': return <Radio {...iconProps} />;
+      case 'CATALYST': return <FlaskRound {...iconProps} />;
+      case 'SIGIL': return <Star {...iconProps} />;
+      case 'LENS': return <Search {...iconProps} />;
+      default: return <Settings {...iconProps} />;
     }
   };
 
   return (
     <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
       <div className="flex items-center gap-2 mb-6">
-        <div className="h-3 w-3 rounded-full bg-purple-400 animate-pulse"></div>
+        <div className="h-3 w-3 rounded-full bg-purple-400 "></div>
         <h3 className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
           NEURAL CRAFTING LAB
         </h3>
@@ -903,7 +987,7 @@ function EnhancedCraftingPanel({
       {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-mono">CATEGORY:</span>
+          <span className="text-xs text-slate-200 font-mono">CATEGORY:</span>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value as any)}
@@ -918,7 +1002,7 @@ function EnhancedCraftingPanel({
           </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-mono">TIER:</span>
+          <span className="text-xs text-slate-200 font-mono">TIER:</span>
           <select
             value={selectedTier}
             onChange={(e) => setSelectedTier(e.target.value as any)}
@@ -943,7 +1027,7 @@ function EnhancedCraftingPanel({
           return (
             <div
               key={recipe.key}
-              className={`rounded-lg border p-4 transition-all duration-300 ${
+              className={`rounded-lg border p-4 ${
                 craftable 
                   ? 'border-slate-600/30 bg-slate-800/30 hover:bg-slate-700/30' 
                   : 'border-slate-700/20 bg-slate-900/20 opacity-60'
@@ -960,9 +1044,15 @@ function EnhancedCraftingPanel({
                   </div>
                 </div>
                 <div className="text-right text-xs font-mono">
-                  <div className="text-orange-300">⚡ {adjustedEnergyCost}</div>
+                  <div className="text-orange-300 flex items-center gap-1">
+                    <Zap className="w-4 h-4" />
+                    {adjustedEnergyCost}
+                  </div>
                   {recipe.craftTime && (
-                    <div className="text-slate-400">⏱ {recipe.craftTime}s</div>
+                    <div className="text-slate-200 flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {recipe.craftTime}s
+                    </div>
                   )}
                 </div>
               </div>
@@ -971,7 +1061,7 @@ function EnhancedCraftingPanel({
 
               {/* Requirements */}
               <div className="mb-3">
-                <div className="text-xs text-slate-400 font-mono mb-2">MATERIALS REQUIRED:</div>
+                <div className="text-xs text-slate-200 font-mono mb-2">MATERIALS REQUIRED:</div>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(recipe.requires).map(([item, qty]) => {
                     const have = getInventoryQty(item);
@@ -994,7 +1084,7 @@ function EnhancedCraftingPanel({
 
               {/* Output Preview */}
               <div className="mb-4">
-                <div className="text-xs text-slate-400 font-mono mb-2">CRAFTING OUTPUT:</div>
+                <div className="text-xs text-slate-200 font-mono mb-2">CRAFTING OUTPUT:</div>
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-slate-200">{recipe.baseOutput.item}</span>
@@ -1008,7 +1098,7 @@ function EnhancedCraftingPanel({
                     </span>
                   </div>
                   {output.bonusItems.map((bonus, i) => (
-                    <div key={i} className="flex items-center justify-between text-xs text-slate-400">
+                    <div key={i} className="flex items-center justify-between text-xs text-slate-200">
                       <span>{bonus.item}</span>
                       <span>×{bonus.qty} ({Math.round(bonus.chance * 100)}%)</span>
                     </div>
@@ -1019,10 +1109,10 @@ function EnhancedCraftingPanel({
               <button
                 onClick={() => onCraft?.(recipe.key)}
                 disabled={busy || !craftable}
-                className={`w-full rounded border px-4 py-2 font-mono text-sm font-semibold transition-all duration-300 ${
+                className={`w-full rounded border px-4 py-2 font-mono text-sm font-semibold ${
                   craftable && !busy
-                    ? 'border-purple-500/50 bg-purple-900/50 text-purple-100 hover:bg-purple-800/50 hover:shadow-purple-500/20 hover:shadow-lg'
-                    : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                    ? 'border-purple-500/50 bg-purple-900/50 text-purple-100 hover:bg-purple-800/50 hover:shadow-purple-500/20 '
+                    : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
                 }`}
               >
                 {busy ? 'CRAFTING...' : craftable ? 'CRAFT' : 'INSUFFICIENT MATERIALS'}
@@ -1034,7 +1124,7 @@ function EnhancedCraftingPanel({
 
       {filteredRecipes.length === 0 && (
         <div className="text-center py-8">
-          <div className="text-slate-400 font-mono text-sm">
+          <div className="text-slate-200 font-mono text-sm">
             // NO CRAFTING BLUEPRINTS MATCH CURRENT FILTERS
           </div>
         </div>
@@ -1130,7 +1220,7 @@ function WalletGate({
       {me?.wallet ? (
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-gradient-to-r from-slate-900 to-cyan-950/30 px-4 py-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <div className="h-2 w-2 rounded-full bg-emerald-400 "></div>
             <div className="font-mono text-cyan-100 tracking-wider">{short(me.wallet)}</div>
           </div>
           <button
@@ -1143,10 +1233,52 @@ function WalletGate({
       ) : (
         <button
           onClick={connect}
-          className="group relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-2 font-mono font-semibold text-white transition-all duration-300 hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/25 hover:shadow-lg"
+          className="relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-6 py-2 font-mono font-semibold text-white hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/25 "
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
           <span className="relative z-10">CONNECT NEURAL LINK</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ===========================
+   Discord Connection Component
+   =========================== */
+
+function DiscordConnection({
+  me,
+  discordLink,
+  discordLoading,
+  onConnect
+}: {
+  me: Me | null;
+  discordLink: DiscordLink | null;
+  discordLoading: boolean;
+  onConnect: () => void;
+}) {
+  if (!me?.wallet) return null;
+
+  return (
+    <div className="flex items-center gap-3">
+      {discordLink ? (
+        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-gradient-to-r from-slate-900 to-purple-950/30 px-4 py-2">
+          <div className="h-2 w-2 rounded-full bg-purple-400 "></div>
+          <div className="font-mono text-purple-100 tracking-wider">
+            {discordLink.discord_global_name || `${discordLink.discord_username}#${discordLink.discord_discriminator}`}
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={onConnect}
+          disabled={discordLoading}
+          className="relative overflow-hidden rounded-lg border border-purple-500/50 bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 font-mono font-semibold text-white hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-500/25  disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+          <span className="relative z-10">
+            {discordLoading ? 'CONNECTING...' : 'CONNECT DISCORD'}
+          </span>
         </button>
       )}
     </div>
@@ -1164,6 +1296,10 @@ export default function PlayPage(): JSX.Element {
   const [lb, setLb] = React.useState<LbRow[]>([]);
   const [risk, setRisk] = React.useState<Risk>('STANDARD');
   const [equippedCore, setEquippedCore] = React.useState<string>('none');
+
+  // Discord state
+  const [discordLink, setDiscordLink] = React.useState<DiscordLink | null>(null);
+  const [discordLoading, setDiscordLoading] = React.useState(false);
 
   const [scan, setScan] = React.useState<ScanRun>(null);
   const [busy, setBusy] = React.useState(false);
@@ -1221,6 +1357,37 @@ export default function PlayPage(): JSX.Element {
     }
   }, []);
 
+  const refreshDiscord = React.useCallback(async () => {
+    if (!me?.wallet) {
+      setDiscordLink(null);
+      return;
+    }
+    try {
+      const data = await fetchJSON<{ linked: boolean; discord_link: DiscordLink | null }>('/api/discord/status', { cache: 'no-store' });
+      setDiscordLink(data.discord_link);
+    } catch {
+      setDiscordLink(null);
+    }
+  }, [me?.wallet]);
+
+  const connectDiscord = React.useCallback(() => {
+    if (!me?.wallet) {
+      push({ message: 'Connect your wallet first', type: 'warning' });
+      return;
+    }
+
+    setDiscordLoading(true);
+
+    // Create Discord OAuth URL with wallet as state
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 'http://localhost:3000/api/auth/discord/callback')}&response_type=code&scope=identify%20email%20guilds.join&state=${encodeURIComponent(me.wallet)}`;
+
+    // Open Discord OAuth in new window
+    window.open(discordAuthUrl, '_blank');
+
+    // Reset loading state after a short delay
+    setTimeout(() => setDiscordLoading(false), 2000);
+  }, [me?.wallet, push]);
+
   const refreshShop = React.useCallback(async () => {
     try {
       setShopLoading(true);
@@ -1249,6 +1416,41 @@ export default function PlayPage(): JSX.Element {
     refreshShop();
     refreshEquipment();
   }, [refreshMe, refreshInv, refreshLb, refreshShop, refreshEquipment]);
+
+  // Load Discord status when wallet changes
+  React.useEffect(() => {
+    refreshDiscord();
+  }, [refreshDiscord]);
+
+  // Handle Discord OAuth callback messages
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const discordSuccess = params.get('discord_success');
+    const discordError = params.get('discord_error');
+
+    if (discordSuccess === 'linked') {
+      push({ message: 'Discord account linked successfully!', type: 'success' });
+      refreshDiscord(); // Refresh Discord status
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (discordError) {
+      let errorMessage = 'Discord connection failed';
+      switch (discordError) {
+        case 'access_denied':
+          errorMessage = 'Discord access denied';
+          break;
+        case 'missing_params':
+          errorMessage = 'Discord connection parameters missing';
+          break;
+        case 'oauth_failed':
+          errorMessage = 'Discord OAuth failed';
+          break;
+      }
+      push({ message: errorMessage, type: 'error' });
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [push, refreshDiscord]);
 
   // Actions
   async function doRefuel() {
@@ -1386,10 +1588,19 @@ export default function PlayPage(): JSX.Element {
   const rzn = me?.rzn ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-950">
+    <div className="min-h-screen relative bg-slate-950">
+      {/* Neural Network Background */}
+      <div
+        className="absolute inset-0 opacity-40 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/neural-bg.jpg')",
+          backgroundBlendMode: 'soft-light'
+        }}
+      />
+      {/* Light Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-950/60 via-slate-900/40 to-cyan-950/50" />
       {/* Animated background */}
       <div className="fixed inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent animate-pulse"></div>
       </div>
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-20">
@@ -1397,31 +1608,39 @@ export default function PlayPage(): JSX.Element {
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded-full bg-cyan-400 animate-pulse"></div>
+              <div className="h-4 w-4 rounded-full bg-cyan-400 "></div>
               <h1 className="font-mono text-3xl font-bold text-cyan-100 tracking-wider">RETRIEVIUM</h1>
               <span className="rounded border border-cyan-500/30 bg-cyan-950/50 px-2 py-1 text-xs text-cyan-300 font-mono">
                 PRE-SEASON
               </span>
             </div>
           </div>
-          <WalletGate
-            me={me}
-            onAuthed={async () => {
-              await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshShop(), refreshEquipment()]);
-              push({ message: 'Neural link established.', type: 'info' });
-            }}
-            pushToast={push}
-          />
+          <div className="flex items-center gap-4">
+            <WalletGate
+              me={me}
+              onAuthed={async () => {
+                await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshShop(), refreshEquipment()]);
+                push({ message: 'Neural link established.', type: 'info' });
+              }}
+              pushToast={push}
+            />
+            <DiscordConnection
+              me={me}
+              discordLink={discordLink}
+              discordLoading={discordLoading}
+              onConnect={connectDiscord}
+            />
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left column */}
           <div className="lg:col-span-2 space-y-6">
             {/* Enhanced Control Panel */}
-            <div className="group rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm transition-all duration-300 hover:border-cyan-400/50">
+            <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-4 sm:p-6 shadow-2xl backdrop-blur-sm ">
               <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                  <div className="h-3 w-3 rounded-full bg-emerald-400 "></div>
                   <span className="text-lg font-semibold text-cyan-100 tracking-wider">
                     LABORATORY CONTROL PANEL
                   </span>
@@ -1434,10 +1653,10 @@ export default function PlayPage(): JSX.Element {
 
               {/* Enhanced Resource Display */}
               <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="group relative rounded-lg border border-cyan-700/30 bg-gradient-to-br from-slate-800/50 to-cyan-950/30 p-4 transition-all duration-300 hover:border-cyan-600/40 hover:shadow-cyan-500/10 hover:shadow-lg">
+                <div className="relative rounded-lg border border-cyan-700/30 bg-gradient-to-br from-slate-800/50 to-cyan-950/30 p-4   ">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-cyan-300 text-sm font-semibold">⚡ ENERGY CORE</span>
+                      <div className="flex items-center gap-2 text-cyan-300 text-sm font-semibold"><Zap className="w-4 h-4" /> ENERGY CORE</div>
                     </div>
                     <ProgressRing
                       progress={Math.min(100, (energy / 100) * 100)}
@@ -1460,13 +1679,16 @@ export default function PlayPage(): JSX.Element {
                   </div>
                 </div>
 
-                <div className="group relative rounded-lg border border-emerald-700/30 bg-gradient-to-br from-slate-800/50 to-emerald-950/30 p-4 transition-all duration-300 hover:border-emerald-600/40 hover:shadow-emerald-500/10 hover:shadow-lg">
+                <div className="relative rounded-lg border border-emerald-700/30 bg-gradient-to-br from-slate-800/50 to-emerald-950/30 p-4 hover:border-emerald-600/40 hover:shadow-emerald-500/10 ">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-emerald-300 text-sm font-semibold">💎 RZN UNITS</span>
+                      <span className="text-emerald-300 text-sm font-semibold flex items-center gap-1">
+                        <Gem className="w-4 h-4" />
+                        RZN UNITS
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 text-xs text-emerald-300/70">
-                      <span>💰</span>
+                      <DollarSign className="w-4 h-4" />
                       <span>Currency</span>
                     </div>
                   </div>
@@ -1492,18 +1714,17 @@ export default function PlayPage(): JSX.Element {
                   <button
                     onClick={startScan}
                     disabled={busy || energy < 8}
-                    className={`group relative overflow-hidden rounded-lg border px-4 py-3 font-semibold transition-all duration-300 transform hover:scale-105 ${
+                    className={`relative overflow-hidden rounded-lg border px-4 py-3 font-semibold transition-all duration-200 hover:border-slate-400/50 ${
                       energy >= 8
-                        ? 'border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/25 hover:shadow-lg'
-                        : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                        ? 'border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 hover:shadow-cyan-500/25 '
+                        : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
                     }`}
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                    <div className="relative z-10 flex items-center justify-center gap-2">
+                            <div className="relative z-10 flex items-center justify-center gap-2">
                       <span className="text-lg">🔍</span>
                       <div>
                         <div className="text-sm font-semibold">INITIATE SCAN</div>
-                        <div className="text-xs opacity-80">-8 Energy</div>
+                        <div className="text-xs opacity-90">-8 Energy</div>
                       </div>
                     </div>
                   </button>
@@ -1511,13 +1732,13 @@ export default function PlayPage(): JSX.Element {
                   <button
                     onClick={resumeScan}
                     disabled={busy}
-                    className="group relative overflow-hidden rounded-lg border border-slate-500/50 bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3 text-slate-200 hover:from-slate-700 hover:to-slate-600 transition-all duration-300 transform hover:scale-105"
+                    className="relative overflow-hidden rounded-lg border border-slate-500/50 bg-gradient-to-r from-slate-800 to-slate-700 px-4 py-3 text-slate-200 hover:from-slate-700 hover:to-slate-600 transform "
                   >
                     <div className="relative z-10 flex items-center justify-center gap-2">
-                      <span className="text-lg">▶️</span>
+                      <PlayCircle className="w-5 h-5" />
                       <div>
                         <div className="text-sm font-semibold">RESUME SCAN</div>
-                        <div className="text-xs opacity-80">Continue</div>
+                        <div className="text-xs opacity-90">Continue</div>
                       </div>
                     </div>
                   </button>
@@ -1525,17 +1746,17 @@ export default function PlayPage(): JSX.Element {
                   <button
                     onClick={doRefuel}
                     disabled={busy || rzn < 5}
-                    className={`group relative overflow-hidden rounded-lg border px-4 py-3 transition-all duration-300 transform hover:scale-105 ${
+                    className={`relative overflow-hidden rounded-lg border px-4 py-3 transform  ${
                       rzn >= 5
-                        ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-emerald-100 hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-lg'
-                        : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                        ? 'border-success-500/50 bg-gradient-to-r from-success-600 to-success-500 text-white hover:from-success-500 hover:to-success-400 hover:shadow-success-500/25 '
+                        : 'border-slate-600/30 bg-slate-800/50 text-slate-100 cursor-not-allowed'
                     }`}
                   >
                     <div className="relative z-10 flex items-center justify-center gap-2">
                       <span className="text-lg">⛽</span>
                       <div>
                         <div className="text-sm font-semibold">REFUEL CORE</div>
-                        <div className="text-xs opacity-80">+10 Energy / -5 RZN</div>
+                        <div className="text-xs opacity-90">+10 Energy / -5 RZN</div>
                       </div>
                     </div>
                   </button>
@@ -1558,13 +1779,13 @@ export default function PlayPage(): JSX.Element {
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {([{id: 'SAFE', icon: '🛡️', name: 'SAFE', desc: 'Low risk, stable'},
-                     {id: 'STANDARD', icon: '⚖️', name: 'STANDARD', desc: 'Balanced approach'},
-                     {id: 'OVERCLOCK', icon: '⚡', name: 'OVERCLOCK', desc: 'High risk, high reward'}] as const).map((r) => (
+                  {([{id: 'SAFE', icon: <Shield className="w-4 h-4" />, name: 'SAFE', desc: 'Low risk, stable'},
+                     {id: 'STANDARD', icon: <Scale className="w-4 h-4" />, name: 'STANDARD', desc: 'Balanced approach'},
+                     {id: 'OVERCLOCK', icon: <Zap className="w-4 h-4" />, name: 'OVERCLOCK', desc: 'High risk, high reward'}] as const).map((r) => (
                     <button
                       key={r.id}
                       onClick={() => setRisk(r.id as Risk)}
-                      className={`group relative rounded-lg border p-4 text-left transition-all duration-300 transform hover:scale-105 ${
+                      className={`relative rounded-lg border p-4 text-left transform  ${
                         risk === r.id
                           ? 'border-orange-500/50 bg-gradient-to-br from-orange-600/30 to-red-600/30 text-white shadow-orange-500/25 shadow-lg'
                           : 'border-slate-600/30 bg-gradient-to-br from-slate-800/50 to-slate-900/30 text-slate-300 hover:border-orange-500/30 hover:bg-slate-700/50'
@@ -1579,7 +1800,7 @@ export default function PlayPage(): JSX.Element {
                       </div>
                       {risk === r.id && (
                         <div className="absolute top-2 right-2">
-                          <div className="w-3 h-3 rounded-full bg-orange-400 animate-pulse"></div>
+                          <div className="w-3 h-3 rounded-full bg-orange-400 "></div>
                         </div>
                       )}
                     </button>
@@ -1592,23 +1813,19 @@ export default function PlayPage(): JSX.Element {
                 <button
                   onClick={stabilize}
                   disabled={busy || energy < 12}
-                  className={`group relative overflow-hidden w-full rounded-xl border px-6 py-6 font-bold text-lg transition-all duration-300 transform hover:scale-105 ${
+                  className={`relative overflow-hidden w-full rounded-xl border px-6 py-6 font-bold text-lg transform  ${
                     energy >= 12
                       ? 'border-emerald-500/50 bg-gradient-to-r from-emerald-600 to-green-600 text-white hover:from-emerald-500 hover:to-green-500 hover:shadow-emerald-500/25 hover:shadow-xl'
-                      : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+                      : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
                   }`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <div className="relative z-10 flex items-center justify-center gap-3">
+                        <div className="relative z-10 flex items-center justify-center gap-3">
                     <span className="text-2xl">🌀</span>
                     <div>
                       <div className="text-lg font-bold">STABILIZE ANOMALY</div>
                       <div className="text-sm opacity-90">Deploy neural stabilization protocols (-12 Energy)</div>
                     </div>
                   </div>
-                  {energy >= 12 && (
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-emerald-500/0 via-emerald-400/10 to-emerald-500/0 animate-pulse"></div>
-                  )}
                 </button>
               </div>
 
@@ -1617,7 +1834,7 @@ export default function PlayPage(): JSX.Element {
                   <span className="text-cyan-400">💡</span>
                   <span className="text-sm font-semibold text-slate-300">Protocol Information</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-200 leading-relaxed">
                   Neural scans unlock quantum patterns required for anomaly stabilization.
                   Successfully stabilizing anomalies generates RZN rewards and rare crafting materials.
                 </p>
@@ -1627,13 +1844,13 @@ export default function PlayPage(): JSX.Element {
             {/* Inventory */}
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-blue-400 animate-pulse"></div>
+                <div className="h-3 w-3 rounded-full bg-blue-400 "></div>
                 <h3 className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
                   LABORATORY INVENTORY
                 </h3>
               </div>
               {inv.length === 0 ? (
-                <div className="text-sm text-slate-400 font-mono bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
+                <div className="text-sm text-slate-200 font-mono bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
                   // NO MATERIALS DETECTED
                 </div>
               ) : (
@@ -1688,16 +1905,16 @@ export default function PlayPage(): JSX.Element {
             {/* ===== Laboratory Shop ===== */}
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div className="h-3 w-3 rounded-full bg-emerald-400 "></div>
                 <h3 className="font-mono text-lg font-semibold text-cyan-100 tracking-wider">
                   LABORATORY SHOP
                 </h3>
               </div>
 
               {shopLoading ? (
-                <div className="text-sm text-slate-400 font-mono">// LOADING CATALOG…</div>
+                <div className="text-sm text-slate-200 font-mono">// LOADING CATALOG…</div>
               ) : shopItems.length === 0 ? (
-                <div className="text-sm text-slate-400 font-mono">// NO ITEMS AVAILABLE</div>
+                <div className="text-sm text-slate-200 font-mono">// NO ITEMS AVAILABLE</div>
               ) : (
                 <div className="space-y-4">
                   {shopItems.map((it) => {
@@ -1705,7 +1922,7 @@ export default function PlayPage(): JSX.Element {
                       it.available === false ||
                       (typeof it.maxQuantity === 'number' && it.soldCount >= it.maxQuantity);
                     const cantAfford = (me?.rzn ?? 0) < it.price;
-                    const disabled = busy || soldOut || it.purchased || cantAfford;
+                    const disabled = busy || soldOut || cantAfford;
 
                     return (
                       <div
@@ -1714,7 +1931,7 @@ export default function PlayPage(): JSX.Element {
                       >
                         <div className="font-mono font-semibold text-cyan-100">{it.name}</div>
                         <p className="text-sm text-slate-300 mt-1">{it.description}</p>
-                        <div className="mt-2 text-xs text-slate-400 font-mono">
+                        <div className="mt-2 text-xs text-slate-200 font-mono">
                           // PRICE: <span className="text-emerald-300 font-bold">{it.price}</span>{' '}
                           RZN
                           {typeof it.maxQuantity === 'number' && (
@@ -1722,15 +1939,23 @@ export default function PlayPage(): JSX.Element {
                               // SOLD: {it.soldCount}/{it.maxQuantity}
                             </span>
                           )}
+                          {(it as any).purchasedCount > 0 && (
+                            <span className="ml-2 text-cyan-300">
+                              // OWNED: {(it as any).purchasedCount}
+                            </span>
+                          )}
                         </div>
                         <div className="mt-3">
                           <button
                             onClick={() => buy(it.id)}
                             disabled={disabled}
+                            className={`w-full rounded-lg border px-4 py-2 font-semibold transition-all ${
+                              soldOut || cantAfford || disabled
+                                ? 'border-slate-600/30 bg-slate-800/50 text-slate-300 cursor-not-allowed'
+                                : 'border-primary-500/50 bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-500 hover:to-primary-400 hover:shadow-lg'
+                            }`}
                           >
-                            {it.purchased
-                              ? 'OWNED'
-                              : soldOut
+                            {soldOut
                               ? 'SOLD OUT'
                               : cantAfford
                               ? 'INSUFFICIENT RZN'
@@ -1747,7 +1972,7 @@ export default function PlayPage(): JSX.Element {
             {/* System Status */}
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-3">
-                <div className="h-3 w-3 rounded-full bg-yellow-400 animate-pulse"></div>
+                <div className="h-3 w-3 rounded-full bg-yellow-400 "></div>
                 <div className="font-mono font-semibold text-cyan-100 tracking-wider">SYSTEM STATUS</div>
               </div>
               <div className="text-sm text-slate-300 font-mono">
@@ -1762,7 +1987,7 @@ export default function PlayPage(): JSX.Element {
             {/* Instructions */}
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-blue-400 animate-pulse"></div>
+                <div className="h-3 w-3 rounded-full bg-blue-400 "></div>
                 <div className="font-mono font-semibold text-cyan-100 tracking-wider">PROTOCOL GUIDE</div>
               </div>
               <div className="space-y-3 text-sm text-slate-300 font-mono">
@@ -1800,11 +2025,11 @@ export default function PlayPage(): JSX.Element {
             {/* Leaderboard */}
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
-                <div className="h-3 w-3 rounded-full bg-orange-400 animate-pulse"></div>
+                <div className="h-3 w-3 rounded-full bg-orange-400 "></div>
                 <div className="font-mono font-semibold text-cyan-100 tracking-wider">NEURAL RANKINGS</div>
               </div>
               {lb.length === 0 ? (
-                <div className="text-sm text-slate-400 font-mono bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
+                <div className="text-sm text-slate-200 font-mono bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
                   // NO DATA AVAILABLE
                 </div>
               ) : (
@@ -1813,12 +2038,12 @@ export default function PlayPage(): JSX.Element {
                     const mine =
                       me?.wallet && row.wallet.toLowerCase() === me.wallet.toLowerCase();
                     const rankColors = ['text-yellow-400', 'text-gray-300', 'text-orange-400'];
-                    const rankColor = rankColors[idx] || 'text-slate-400';
+                    const rankColor = rankColors[idx] || 'text-slate-200';
 
                     return (
                       <div
                         key={row.wallet + idx}
-                        className={`flex items-center justify-between rounded-lg border px-4 py-3 transition-all duration-300 ${
+                        className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
                           mine
                             ? 'border-cyan-400/60 bg-cyan-950/30 shadow-cyan-400/20 shadow-lg'
                             : 'border-slate-600/30 bg-slate-800/30 hover:bg-slate-700/30'
@@ -1865,7 +2090,7 @@ export default function PlayPage(): JSX.Element {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-lg rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-4 w-4 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div className="h-4 w-4 rounded-full bg-emerald-400 "></div>
                 <h3 className="text-xl font-mono font-bold text-cyan-100 tracking-wider">
                   STABILIZATION COMPLETE
                 </h3>
@@ -1881,7 +2106,7 @@ export default function PlayPage(): JSX.Element {
               <div className="mb-6">
                 <div className="font-mono font-semibold text-cyan-200 mb-3">MATERIAL REWARDS</div>
                 {stabRes.items.length === 0 ? (
-                  <div className="text-sm text-slate-400 font-mono bg-slate-800/30 rounded-lg p-3 border border-slate-700/30">
+                  <div className="text-sm text-slate-200 font-mono bg-slate-800/30 rounded-lg p-3 border border-slate-700/30">
                     // NO MATERIALS OBTAINED
                   </div>
                 ) : (
@@ -1911,11 +2136,10 @@ export default function PlayPage(): JSX.Element {
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  className="group relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 font-mono text-white transition-all duration-300 hover:from-cyan-500 hover:to-blue-500"
-                  href={`https://twitter.com/intent/tweet?text=I%20stabilized%20an%20anomaly%20and%20earned%20${stabRes.rzn}%20RZN%20in%20Retrievium%20Pre-Season!%20🧬⚡`}
+                  className="relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 font-mono text-white hover:from-cyan-500 hover:to-blue-500"
+                  href={`https://twitter.com/intent/tweet?text=I%20stabilized%20an%20anomaly%20and%20earned%20${stabRes.rzn}%20RZN%20in%20Retrievium%20Pre-Season!%20%23Retrievium%20%23GameFi`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <span className="relative z-10">SHARE RESULTS</span>
+                        <span className="relative z-10">SHARE RESULTS</span>
                 </a>
               </div>
             </div>
@@ -1927,7 +2151,7 @@ export default function PlayPage(): JSX.Element {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="w-full max-w-lg rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-3 mb-6">
-                <div className="h-4 w-4 rounded-full bg-emerald-400 animate-pulse"></div>
+                <div className="h-4 w-4 rounded-full bg-emerald-400 "></div>
                 <h3 className="text-xl font-mono font-bold text-cyan-100 tracking-wider">
                   PURCHASE SUCCESSFUL
                 </h3>
@@ -1962,11 +2186,10 @@ export default function PlayPage(): JSX.Element {
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  className="group relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 font-mono text-white transition-all duration-300 hover:from-cyan-500 hover:to-blue-500"
-                  href={`https://twitter.com/intent/tweet?text=I%20just%20secured%20my%20whitelist%20spot%20for%20Retrievium%20using%20RZN%20earned%20in%20the%20Neural%20Laboratory!%20🧬⚡%20%23Retrievium%20%23GameFi`}
+                  className="relative overflow-hidden rounded-lg border border-cyan-500/50 bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-2 font-mono text-white hover:from-cyan-500 hover:to-blue-500"
+                  href={`https://twitter.com/intent/tweet?text=I%20just%20secured%20my%20whitelist%20spot%20for%20Retrievium%20using%20RZN%20earned%20in%20the%20Neural%20Laboratory!%20%23Retrievium%20%23GameFi`}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <span className="relative z-10">SHARE ACHIEVEMENT</span>
+                        <span className="relative z-10">SHARE ACHIEVEMENT</span>
                 </a>
               </div>
             </div>

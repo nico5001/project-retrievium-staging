@@ -1,9 +1,88 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabaseAdmin';
+import { ensureProgress, requireWallet } from '@/app/api/_utils';
 
-export async function GET(req: NextRequest) {
-  
-  const url = new URL('/api/shop/items', req.url);
-  const upstream = await fetch(url.toString(), { cache: 'no-store' });
-  const data = await upstream.json().catch(() => ({ items: [] }));
-  return NextResponse.json(data, { status: upstream.status });
+const SHOP_ITEMS = [
+  {
+    id: 'gtd_whitelist',
+    name: 'GTD Whitelist',
+    description:
+      'Guaranteed allocation spot for the main launch. Premium access with confirmed participation rights.',
+    price: 2500,
+    type: 'GTD',
+    maxQuantity: 100,
+    available: true,
+  },
+  {
+    id: 'fcfs_whitelist',
+    name: 'FCFS Whitelist',
+    description:
+      'First Come First Serve whitelist spot. Early access opportunity with limited availability.',
+    price: 1000,
+    type: 'FCFS_WL',
+    maxQuantity: 500,
+    available: true,
+  },
+] as const;
+
+export async function GET() {
+  let wallet: string | null = null;
+  try {
+    wallet = await requireWallet();
+  } catch {
+    wallet = null;
+  }
+
+  async function soldCount(itemId: string) {
+    const { count } = await supabase
+      .from('shop_purchases')
+      .select('*', { head: true, count: 'exact' })
+      .eq('item_id', itemId);
+    return count ?? 0;
+  }
+
+  const soldMap: Record<string, number> = {};
+  await Promise.all(
+    SHOP_ITEMS.map(async (it) => {
+      soldMap[it.id] = await soldCount(it.id);
+    })
+  );
+
+  let purchasedCounts: Record<string, number> = {};
+  if (wallet) {
+    const { data } = await supabase
+      .from('shop_purchases')
+      .select('item_id')
+      .eq('wallet', wallet);
+    if (data) {
+      data.forEach(purchase => {
+        purchasedCounts[purchase.item_id] = (purchasedCounts[purchase.item_id] || 0) + 1;
+      });
+    }
+  }
+
+  let userBalance: number | null = null;
+  if (wallet) {
+    const prog = await ensureProgress(wallet);
+    userBalance = prog.rzn ?? 0;
+  }
+
+  const items = SHOP_ITEMS.map((it) => {
+    const sold = soldMap[it.id] || 0;
+    const stillAvailable =
+      it.available && (it.maxQuantity ? sold < it.maxQuantity : true);
+    return {
+      ...it,
+      soldCount: sold,
+      available: stillAvailable,
+      purchased: false, // Allow multiple purchases
+      purchasedCount: purchasedCounts[it.id] || 0, // Show how many user has bought
+    };
+  });
+
+  return NextResponse.json({
+    items,
+    userBalance,
+    wallet,
+  });
 }

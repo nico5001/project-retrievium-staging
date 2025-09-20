@@ -19,6 +19,7 @@
     "aos": "^2.3.4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "discord.js": "^14.22.1",
     "framer-motion": "^12.23.12",
     "jose": "^6.1.0",
     "lucide-react": "^0.438.0",

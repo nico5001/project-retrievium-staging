@@ -3,6 +3,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useToast } from "@/hooks/use-toast";
+import {
+  Search,
+  Zap,
+  Hammer,
+  CircleDot,
+  ArrowLeft,
+  Package,
+  Star,
+  Settings,
+  Cpu,
+  Eye,
+  Layers,
+  CheckCircle,
+  Gem,
+  FlaskRound,
+  Beaker
+} from 'lucide-react';
 
 /* ===========================
    Enhanced UI/UX Components
@@ -126,11 +143,11 @@ const TIER_STYLES = {
 
 // Category Icons with better styling
 const CATEGORY_CONFIG = {
-  CORE: { icon: '🧠', name: 'Neural Core', description: 'Primary processing unit' },
-  AMPLIFIER: { icon: '📡', name: 'Signal Amplifier', description: 'Boost crafting efficiency' },
-  CATALYST: { icon: '⚗️', name: 'Process Catalyst', description: 'Reduce energy costs' },
-  SIGIL: { icon: '🔮', name: 'Neural Sigil', description: 'Enhance perception' },
-  LENS: { icon: '🔍', name: 'Perception Lens', description: 'Expand awareness' }
+  CORE: { icon: <Cpu className="w-4 h-4" />, name: 'Neural Core', description: 'Primary processing unit' },
+  AMPLIFIER: { icon: <Settings className="w-4 h-4" />, name: 'Signal Amplifier', description: 'Boost crafting efficiency' },
+  CATALYST: { icon: <FlaskRound className="w-4 h-4" />, name: 'Process Catalyst', description: 'Reduce energy costs' },
+  SIGIL: { icon: <Star className="w-4 h-4" />, name: 'Neural Sigil', description: 'Enhance perception' },
+  LENS: { icon: <Search className="w-4 h-4" />, name: 'Perception Lens', description: 'Expand awareness' }
 };
 
 type Me = {
@@ -414,7 +431,7 @@ const Panel = ({ children, className = '', hover = true }: {
   hover?: boolean;
 }) => (
   <div className={`rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm shadow-lg ${
-    hover ? 'transition-all duration-300 hover:border-white/20 hover:shadow-xl hover:scale-[1.01]' : ''
+    hover ? 'transition-colors duration-200 hover:border-white/20 hover:shadow-xl ' : ''
   } ${className}`}>
     {children}
   </div>
@@ -432,7 +449,7 @@ const SectionTitle = ({ children, icon, description }: {
       <span className="text-sm font-semibold tracking-wider text-slate-200 uppercase">{children}</span>
     </div>
     {description && (
-      <p className="text-xs text-slate-400 ml-8">{description}</p>
+      <p className="text-xs text-slate-200 ml-8">{description}</p>
     )}
   </div>
 );
@@ -459,7 +476,7 @@ function RecipeCard({
   const categoryConfig = CATEGORY_CONFIG[recipe.category];
 
   return (
-    <div className={`group relative rounded-lg border p-4 transition-all duration-300 transform hover:scale-105 ${
+    <div className={`group relative rounded-lg border p-4 transition-colors duration-200 transform  ${
       canCraft
         ? `border-slate-600/30 bg-gradient-to-br from-slate-800/30 to-slate-900/20 hover:border-slate-500/40 hover:${tierStyle.glow} hover:shadow-lg`
         : 'border-slate-700/20 bg-slate-900/20 opacity-60'
@@ -467,7 +484,7 @@ function RecipeCard({
       {/* Recipe Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start gap-3 flex-1">
-          <div className="text-2xl group-hover:scale-110 transition-transform duration-300">
+          <div className="text-2xl group- transition-transform duration-300">
             {categoryConfig.icon}
           </div>
           <div className="flex-1">
@@ -482,11 +499,11 @@ function RecipeCard({
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1 text-orange-300 text-sm font-semibold mb-1">
-            <span>⚡</span>
+            <Zap className="w-4 h-4" />
             <AnimatedCounter value={adjustedEnergyCost} />
           </div>
           <div className="flex items-center gap-1 text-yellow-300 text-sm font-semibold">
-            <span>💎</span>
+            <Gem className="w-4 h-4" />
             <AnimatedCounter value={recipe.rzn} suffix=" RZN" />
           </div>
         </div>
@@ -497,8 +514,8 @@ function RecipeCard({
 
       {/* Requirements */}
       <div className="mb-4">
-        <div className="text-xs text-slate-400 font-semibold mb-3 flex items-center gap-2">
-          <span>📦</span>
+        <div className="text-xs text-slate-200 font-semibold mb-3 flex items-center gap-2">
+          <Package className="w-4 h-4" />
           MATERIALS REQUIRED:
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -506,7 +523,7 @@ function RecipeCard({
             const have = getInventoryQty(item);
             const sufficient = have >= qty;
             return (
-              <div key={item} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border transition-all duration-300 ${
+              <div key={item} className={`flex items-center justify-between rounded-lg px-3 py-2 text-xs border transition-colors duration-200 ${
                 sufficient
                   ? 'border-green-600/30 bg-green-900/20 text-green-200'
                   : 'border-red-600/30 bg-red-900/20 text-red-200'
@@ -521,7 +538,7 @@ function RecipeCard({
 
       {/* Output Preview */}
       <div className="mb-4">
-        <div className="text-xs text-slate-400 font-semibold mb-3 flex items-center gap-2">
+        <div className="text-xs text-slate-200 font-semibold mb-3 flex items-center gap-2">
           <span>🎁</span>
           CRAFTING OUTPUT:
         </div>
@@ -550,10 +567,10 @@ function RecipeCard({
       <button
         onClick={() => onCraft(recipe.key)}
         disabled={busy || !canCraft}
-        className={`group/btn relative overflow-hidden w-full rounded-lg border px-4 py-3 font-semibold transition-all duration-300 transform hover:scale-105 ${
+        className={`group/btn relative overflow-hidden w-full rounded-lg border px-4 py-3 font-semibold transition-colors duration-200 transform  ${
           canCraft && !busy
             ? `border-purple-500/50 bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-500 hover:to-blue-500 hover:shadow-purple-500/25 hover:shadow-lg`
-            : 'border-slate-600/30 bg-slate-800/50 text-slate-400 cursor-not-allowed'
+            : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
         }`}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-1000"></div>
@@ -638,13 +655,14 @@ function EnhancedCraftingPanel({
   };
 
   const getCategoryIcon = (category: Recipe['category']) => {
+    const iconProps = { className: "w-4 h-4" };
     switch (category) {
-      case 'CORE': return '🧠';
-      case 'AMPLIFIER': return '📡';
-      case 'CATALYST': return '⚗️';
-      case 'SIGIL': return '🔮';
-      case 'LENS': return '🔍';
-      default: return '⚙️';
+      case 'CORE': return <Cpu {...iconProps} />;
+      case 'AMPLIFIER': return <Settings {...iconProps} />;
+      case 'CATALYST': return <FlaskRound {...iconProps} />;
+      case 'SIGIL': return <Star {...iconProps} />;
+      case 'LENS': return <Search {...iconProps} />;
+      default: return <Settings {...iconProps} />;
     }
   };
 
@@ -663,7 +681,7 @@ function EnhancedCraftingPanel({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <span className="text-emerald-300 text-sm font-semibold flex items-center gap-2">
-                <span className="text-lg">⚡</span>
+                <Zap className="w-5 h-5" />
                 ACTIVE NEURAL BONUSES
               </span>
             </div>
@@ -701,61 +719,116 @@ function EnhancedCraftingPanel({
             FILTER BLUEPRINTS
           </span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {/* Category Filter */}
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400 font-semibold">CATEGORY</label>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value as any)}
-              className="w-full rounded-lg border border-slate-600/30 bg-gradient-to-r from-slate-800/80 to-slate-700/60 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:border-slate-500/50 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-            >
-              <option value="ALL">🌟 All Categories</option>
+        {/* Enhanced Desktop-Friendly Filters */}
+        <div className="space-y-6">
+          {/* Category Filter - Horizontal Pills */}
+          <div className="space-y-3">
+            <label className="text-xs text-slate-200 font-semibold">CATEGORY</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedCategory('ALL')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedCategory === 'ALL'
+                    ? 'bg-cyan-600 border border-cyan-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <Star className="w-4 h-4 mr-2" /> All Categories
+              </button>
               {Object.entries(CATEGORY_CONFIG).map(([key, config]) => (
-                <option key={key} value={key}>
+                <button
+                  key={key}
+                  onClick={() => setSelectedCategory(key as any)}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                    selectedCategory === key
+                      ? 'bg-cyan-600 border border-cyan-500 text-white shadow-lg'
+                      : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                  }`}
+                >
                   {config.icon} {config.name}
-                </option>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
-          {/* Tier Filter */}
-          <div className="space-y-2">
-            <label className="text-xs text-slate-400 font-semibold">RARITY TIER</label>
-            <select
-              value={selectedTier}
-              onChange={(e) => setSelectedTier(e.target.value as any)}
-              className="w-full rounded-lg border border-slate-600/30 bg-gradient-to-r from-slate-800/80 to-slate-700/60 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:border-slate-500/50 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
-            >
-              <option value="ALL">🌈 All Tiers</option>
-              <option value="COMMON">⚪ Common</option>
-              <option value="UNCOMMON">🟢 Uncommon</option>
-              <option value="RARE">🔵 Rare</option>
-              <option value="EPIC">🟣 Epic</option>
-            </select>
+          {/* Tier Filter - Horizontal Pills */}
+          <div className="space-y-3">
+            <label className="text-xs text-slate-200 font-semibold">RARITY TIER</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setSelectedTier('ALL')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedTier === 'ALL'
+                    ? 'bg-purple-600 border border-purple-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <Layers className="w-4 h-4 mr-2" /> All Tiers
+              </button>
+              <button
+                onClick={() => setSelectedTier('COMMON')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedTier === 'COMMON'
+                    ? 'bg-gray-600 border border-gray-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <CircleDot className="w-4 h-4 mr-2" /> Common
+              </button>
+              <button
+                onClick={() => setSelectedTier('UNCOMMON')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedTier === 'UNCOMMON'
+                    ? 'bg-green-600 border border-green-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <CircleDot className="w-4 h-4 mr-2 text-green-400" /> Uncommon
+              </button>
+              <button
+                onClick={() => setSelectedTier('RARE')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedTier === 'RARE'
+                    ? 'bg-blue-600 border border-blue-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <CircleDot className="w-4 h-4 mr-2 text-blue-400" /> Rare
+              </button>
+              <button
+                onClick={() => setSelectedTier('EPIC')}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                  selectedTier === 'EPIC'
+                    ? 'bg-purple-600 border border-purple-500 text-white shadow-lg'
+                    : 'bg-slate-800/50 border border-slate-600/30 text-slate-300  hover:bg-slate-700/50'
+                }`}
+              >
+                <CircleDot className="w-4 h-4 mr-2 text-purple-400" /> Epic
+              </button>
+            </div>
           </div>
 
           {/* Quick Filter Buttons */}
-          <div className="sm:col-span-2 lg:col-span-3 space-y-2">
-            <label className="text-xs text-slate-400 font-semibold">QUICK FILTERS</label>
+          <div className="space-y-3">
+            <label className="text-xs text-slate-200 font-semibold">QUICK FILTERS</label>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => { setSelectedCategory('CORE'); setSelectedTier('ALL'); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-900/30 border border-blue-700/30 text-blue-200 hover:bg-blue-800/40 transition-all duration-300"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-900/30 border border-blue-700/30 text-blue-200 hover:bg-blue-800/40 transition-all duration-200"
               >
-                🧠 Neural Cores
+                <Cpu className="w-4 h-4 mr-1" /> Neural Cores
               </button>
               <button
                 onClick={() => { setSelectedCategory('ALL'); setSelectedTier('RARE'); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-900/30 border border-purple-700/30 text-purple-200 hover:bg-purple-800/40 transition-all duration-300"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-900/30 border border-purple-700/30 text-purple-200 hover:bg-purple-800/40 transition-all duration-200"
               >
-                💎 Rare Items
+                <Star className="w-4 h-4 mr-1" /> Rare Items
               </button>
               <button
                 onClick={() => { setSelectedCategory('ALL'); setSelectedTier('ALL'); }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700/50 border border-slate-600/30 text-slate-200 hover:bg-slate-600/50 transition-all duration-300"
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-700/50 border border-slate-600/30 text-slate-200 hover:bg-slate-600/50 transition-all duration-200"
               >
-                🔄 Clear Filters
+                <Settings className="w-4 h-4 mr-1" /> Clear Filters
               </button>
             </div>
           </div>
@@ -787,15 +860,15 @@ function EnhancedCraftingPanel({
       {filteredRecipes.length === 0 && (
         <div className="text-center py-12">
           <div className="text-6xl mb-4">🔍</div>
-          <div className="text-slate-400 text-lg font-semibold mb-2">
+          <div className="text-slate-200 text-lg font-semibold mb-2">
             No Blueprints Found
           </div>
-          <div className="text-slate-500 text-sm mb-4">
+          <div className="text-slate-200 text-sm mb-4">
             No crafting blueprints match your current filter criteria
           </div>
           <button
             onClick={() => { setSelectedCategory('ALL'); setSelectedTier('ALL'); }}
-            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-all duration-300 transform hover:scale-105"
+            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition-colors duration-200 transform "
           >
             🔄 Clear All Filters
           </button>
@@ -843,18 +916,18 @@ function EquipmentSlot({
   const hasEquipped = currentItem !== 'none';
 
   return (
-    <Panel className={`p-4 transition-all duration-300 ${
+    <Panel className={`p-4 transition-colors duration-200 ${
       hasEquipped
         ? 'border-emerald-500/40 bg-gradient-to-br from-emerald-950/20 to-emerald-900/10'
         : 'border-slate-600/30'
     }`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="text-2xl group-hover:scale-110 transition-transform duration-300">{icon}</div>
+          <div className="text-2xl transition-transform duration-200">{icon}</div>
           <div>
             <div className="text-sm font-semibold text-slate-200">{title}</div>
             <div className={`text-xs font-medium ${
-              hasEquipped ? 'text-emerald-300' : 'text-slate-400'
+              hasEquipped ? 'text-emerald-300' : 'text-slate-200'
             }`}>
               {currentLabel}
             </div>
@@ -869,14 +942,14 @@ function EquipmentSlot({
       </div>
 
       <div className="mb-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700/30">
-        <div className="text-xs text-slate-400 font-semibold mb-1">CURRENT EFFECT:</div>
+        <div className="text-xs text-slate-200 font-semibold mb-1">CURRENT EFFECT:</div>
         <div className="text-sm text-slate-300">{currentBonus.description}</div>
       </div>
 
       <div className="mb-4">
-        <label className="text-xs text-slate-400 font-semibold mb-2 block">EQUIP ITEM:</label>
+        <label className="text-xs text-slate-200 font-semibold mb-2 block">EQUIP ITEM:</label>
         <select
-          className="w-full rounded-lg border border-slate-600/30 bg-gradient-to-r from-slate-800/80 to-slate-700/60 px-3 py-2 text-sm text-slate-200 transition-all duration-300 hover:border-slate-500/50 focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
+          className="w-full rounded-lg border border-slate-600/30 bg-gradient-to-r from-slate-800/80 to-slate-700/60 px-3 py-2 text-sm text-slate-200 transition-colors duration-200  focus:border-cyan-500/50 focus:outline-none focus:ring-2 focus:ring-cyan-500/20"
           value={currentItem}
           onChange={(e) => onEquip(slot, e.target.value)}
           disabled={busy || loading}
@@ -895,7 +968,7 @@ function EquipmentSlot({
       </div>
 
       <div className="space-y-3">
-        <div className="text-xs text-slate-400 font-semibold">AVAILABLE ITEMS:</div>
+        <div className="text-xs text-slate-200 font-semibold">AVAILABLE ITEMS:</div>
         {availableItems.length > 0 ? (
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {availableItems.map(item => {
@@ -905,16 +978,16 @@ function EquipmentSlot({
               return (
                 <div
                   key={item.item}
-                  className={`group flex items-center justify-between rounded-lg border p-3 transition-all duration-300 cursor-pointer hover:scale-105 ${
+                  className={`group flex items-center justify-between rounded-lg border p-3 transition-all duration-200 cursor-pointer hover:border-slate-400/70 ${
                     isEquipped
                       ? 'border-emerald-400/50 bg-gradient-to-r from-emerald-950/30 to-emerald-900/20'
-                      : 'border-slate-600/30 bg-slate-800/30 hover:border-slate-500/50'
+                      : 'border-slate-600/30 bg-slate-800/30 '
                   }`}
                   onClick={() => !isEquipped && onEquip(slot, item.item)}
                 >
                   <div className="flex items-center gap-3">
                     <div className="text-lg">
-                      {isEquipped ? '✅' : '📦'}
+                      {isEquipped ? <CheckCircle className="w-4 h-4 text-green-400" /> : <Package className="w-4 h-4" />}
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-slate-200">{itemLabel}</div>
@@ -924,14 +997,14 @@ function EquipmentSlot({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-slate-400 font-bold">×{item.qty}</span>
+                    <span className="text-slate-200 font-bold">×{item.qty}</span>
                     {!isEquipped && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           onEquip(slot, item.item);
                         }}
-                        className="px-2 py-1 rounded text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition-all duration-300"
+                        className="px-2 py-1 rounded text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white transition-colors duration-200"
                       >
                         EQUIP
                       </button>
@@ -944,10 +1017,10 @@ function EquipmentSlot({
         ) : (
           <div className="text-center py-4">
             <div className="text-4xl mb-2">📭</div>
-            <div className="text-xs text-slate-400 italic">
+            <div className="text-xs text-slate-200 italic">
               No {title.toLowerCase()} items available
             </div>
-            <div className="text-xs text-slate-500 mt-1">
+            <div className="text-xs text-slate-200 mt-1">
               Craft items to unlock equipment slots
             </div>
           </div>
@@ -993,12 +1066,12 @@ function EquipmentManagementPanel({
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">{icon}</span>
           <div>
-            <div className="text-xs tracking-wide text-slate-400">{title}</div>
+            <div className="text-xs tracking-wide text-slate-200">{title}</div>
             <div className="text-sm font-semibold text-slate-100">{currentLabel}</div>
           </div>
         </div>
 
-        <div className="mb-3 text-xs text-slate-400">
+        <div className="mb-3 text-xs text-slate-200">
           {currentBonus.description}
         </div>
 
@@ -1036,7 +1109,7 @@ function EquipmentManagementPanel({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-mono">{itemLabel}</span>
-                  <span className="text-slate-400">×{item.qty}</span>
+                  <span className="text-slate-200">×{item.qty}</span>
                 </div>
                 {isEquipped && (
                   <div className="mt-1 text-emerald-300">• EQUIPPED</div>
@@ -1046,7 +1119,7 @@ function EquipmentManagementPanel({
           })}
 
           {availableItems.length === 0 && (
-            <div className="text-xs text-slate-400 italic">
+            <div className="text-xs text-slate-200 italic">
               No {title.toLowerCase()} items crafted yet
             </div>
           )}
@@ -1062,7 +1135,7 @@ function EquipmentManagementPanel({
     <Panel className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <SectionTitle
-          icon="⚙️"
+          icon={<Settings className="w-4 h-4" />}
           description="Advanced neural interface equipment management system"
         >
           NEURAL EQUIPMENT SYSTEM
@@ -1075,7 +1148,7 @@ function EquipmentManagementPanel({
           />
           <div className="text-sm">
             <div className="font-semibold text-slate-200">{equippedCount}/{totalSlots}</div>
-            <div className="text-xs text-slate-400">Equipped</div>
+            <div className="text-xs text-slate-200">Equipped</div>
           </div>
         </div>
       </div>
@@ -1104,7 +1177,7 @@ function EquipmentManagementPanel({
         <EquipmentSlot
           slot="catalyst"
           title="Process Catalyst"
-          icon="⚗️"
+          icon={<FlaskRound className="w-4 h-4" />}
           equipment={equipment}
           inventory={inventory}
           onEquip={onEquip}
@@ -1114,7 +1187,7 @@ function EquipmentManagementPanel({
         <EquipmentSlot
           slot="sigil"
           title="Neural Sigil"
-          icon="🔮"
+          icon={<Star className="w-4 h-4" />}
           equipment={equipment}
           inventory={inventory}
           onEquip={onEquip}
@@ -1138,13 +1211,13 @@ function EquipmentManagementPanel({
           <span className="text-cyan-400">💡</span>
           <span className="text-sm font-semibold text-slate-300">Equipment System Guide</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs text-slate-400">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs text-slate-200">
           <div className="flex items-start gap-2">
             <span className="text-green-400">✓</span>
             <span>Craft items to unlock equipment slots</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-blue-400">⚡</span>
+            <Zap className="w-4 h-4 text-blue-400" />
             <span>Equipment provides crafting bonuses</span>
           </div>
           <div className="flex items-start gap-2">
@@ -1273,14 +1346,24 @@ export default function CraftingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Match Play background */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-900 via-slate-800 to-cyan-950" />
+      {/* Neural Network Background */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 opacity-40 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: "url('/neural-bg.jpg')",
+          backgroundBlendMode: 'soft-light'
+        }}
+      />
+      {/* Light Gradient Overlay */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-br from-slate-950/60 via-slate-900/40 to-cyan-950/50" />
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 opacity-30">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-cyan-500/5 to-transparent animate-pulse" />
       </div>
 
       <div className="mx-auto max-w-6xl px-4 md:px-6 pt-20 md:pt-28 pb-12 space-y-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <Link href="/play" className="group inline-flex items-center gap-3 px-4 py-2 rounded-lg border border-cyan-500/30 bg-gradient-to-r from-cyan-950/30 to-blue-950/20 text-slate-300 hover:text-cyan-200 hover:border-cyan-400/50 transition-all duration-300 hover:scale-105">
+          <Link href="/play" className="group inline-flex items-center gap-3 px-4 py-2 rounded-lg border border-cyan-500/30 bg-gradient-to-r from-cyan-950/30 to-blue-950/20 text-slate-300   transition-colors duration-200 ">
             <span className="text-lg group-hover:translate-x-[-4px] transition-transform duration-300">←</span>
             <div>
               <div className="text-sm font-semibold">Back to Neural Laboratory</div>
@@ -1290,14 +1373,14 @@ export default function CraftingPage() {
 
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-emerald-500/30 bg-gradient-to-r from-emerald-950/30 to-emerald-900/20">
-              <span className="text-emerald-400 text-lg">💎</span>
+              <Gem className="w-5 h-5 text-emerald-400" />
               <div>
                 <div className="text-xs text-emerald-300 font-semibold">RZN</div>
                 <AnimatedCounter value={me?.rzn ?? 0} className="text-sm font-bold text-emerald-100" />
               </div>
             </div>
             <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 bg-gradient-to-r from-cyan-950/30 to-cyan-900/20">
-              <span className="text-cyan-400 text-lg">⚡</span>
+              <Zap className="w-5 h-5 text-cyan-400" />
               <div>
                 <div className="text-xs text-cyan-300 font-semibold">ENERGY</div>
                 <AnimatedCounter value={me?.energy ?? 0} className="text-sm font-bold text-cyan-100" />

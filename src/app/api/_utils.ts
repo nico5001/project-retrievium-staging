@@ -5,10 +5,10 @@ import { supabase } from '@/lib/supabaseAdmin';
 
 
 export function todayYMD_UTC8(): string {
+  // Get current time in UTC+8 (Asia/Singapore timezone)
   const now = new Date();
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000;
-  const utc8 = new Date(utcMs + 8 * 3600 * 1000);
-  return utc8.toISOString().slice(0, 10);
+  const utc8String = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' });
+  return utc8String; // Returns YYYY-MM-DD format
 }
 
 
@@ -52,31 +52,35 @@ export async function rateLimit(scope: string, key: string, limit: number, windo
 export async function ensureProgress(wallet: string) {
   const ymd = todayYMD_UTC8();
 
- 
+  // Check if progress exists for today
   const { data: existing } = await supabase
     .from('progress')
     .select('*')
     .eq('wallet', wallet)
     .eq('ymd', ymd)
     .maybeSingle();
+
+  // If progress exists for today, return it
   if (existing) return existing;
 
+  // If no progress for today, create new record with fresh energy
   const base = {
     wallet,
     ymd,
-    energy: 100,
+    energy: 100, // Reset energy to 100 for new day
     rzn: 0,
     scans_done: 0,
     stabilize_count: 0,
+    crafts_done: 0, // Daily crafting counter
     scan_ready: false,
   };
 
-  
+  // Insert new progress record for today
   await supabase
     .from('progress')
     .upsert(base, { onConflict: 'wallet,ymd' });
 
-  
+  // Return the new progress record
   const { data } = await supabase
     .from('progress')
     .select('*')

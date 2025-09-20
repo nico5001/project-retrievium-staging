@@ -48,3 +48,5 @@ discord-bot.js
 deploy-discord-commands.js
 package-discord.json
 discord_integration_migration.sql
+.env.local
+supabase-bot.js

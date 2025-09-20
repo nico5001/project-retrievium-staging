@@ -24,7 +24,7 @@ export async function GET() {
     // Get today's progress
     const { data: progress } = await supabase
       .from('progress')
-      .select('scans_done, stabilize_count')
+      .select('scans_done, stabilize_count, crafts_done')
       .eq('wallet', wallet)
       .eq('ymd', ymd)
       .maybeSingle();
@@ -70,10 +70,10 @@ export async function GET() {
         id: 'daily_craft',
         title: 'Neural Engineer',
         description: 'Craft any item',
-        progress: seasonStats?.crafts ?? 0,
+        progress: progress?.crafts_done ?? 0,
         target: 1,
         reward: { rzn: 30, items: [{ item: 'shard_rare', qty: 1 }] },
-        completed: (seasonStats?.crafts ?? 0) >= 1,
+        completed: (progress?.crafts_done ?? 0) >= 1,
         claimed: claimedSet.has('daily_craft'),
       },
     ];
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     // Get current progress to validate completion
     const { data: progress } = await supabase
       .from('progress')
-      .select('scans_done, stabilize_count')
+      .select('scans_done, stabilize_count, crafts_done')
       .eq('wallet', wallet)
       .eq('ymd', ymd)
       .maybeSingle();
@@ -139,7 +139,7 @@ export async function POST(req: NextRequest) {
         reward = { rzn: 40, items: [{ item: 'shard_uncommon', qty: 1 }] };
         break;
       case 'daily_craft':
-        completed = (seasonStats?.crafts ?? 0) >= 1;
+        completed = (progress?.crafts_done ?? 0) >= 1;
         reward = { rzn: 30, items: [{ item: 'shard_rare', qty: 1 }] };
         break;
     }

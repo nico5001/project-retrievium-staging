@@ -4,6 +4,56 @@ import { supabase } from '@/lib/supabaseAdmin';
 
 export const runtime = 'nodejs';
 
+// Discord webhook function for craft announcements
+async function sendCraftAnnouncement(wallet: string, recipe: Recipe, qty: number, criticalSuccess: boolean) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  // Get Discord username if linked
+  const { data: discordLink } = await supabase
+    .from('discord_links')
+    .select('discord_username')
+    .eq('wallet', wallet)
+    .maybeSingle();
+
+  const username = discordLink?.discord_username || `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+
+  const tierEmojis = {
+    'COMMON': '⚪',
+    'UNCOMMON': '🟢',
+    'RARE': '🔵',
+    'EPIC': '🟣'
+  };
+
+  const categoryEmojis = {
+    'CORE': '💎',
+    'AMPLIFIER': '⚡',
+    'CATALYST': '🧪',
+    'SIGIL': '🔮',
+    'LENS': '🔍'
+  };
+
+  const embed = {
+    title: `${tierEmojis[recipe.tier]} ${recipe.tier} ${recipe.category} CRAFTED!`,
+    description: `**${username}** just crafted ${criticalSuccess ? '✨ **CRITICAL SUCCESS!** ✨' : ''}\n\n${categoryEmojis[recipe.category]} **${recipe.grants.item.replace(/_/g, ' ').toUpperCase()}** ${qty > 1 ? `x${qty}` : ''}`,
+    color: recipe.tier === 'EPIC' ? 0x9B59B6 : recipe.tier === 'RARE' ? 0x3498DB : 0x2ECC71,
+    fields: [
+      { name: '💰 RZN Earned', value: recipe.rzn.toLocaleString(), inline: true },
+      { name: '⚡ Energy Used', value: recipe.energyCost.toString(), inline: true }
+    ],
+    timestamp: new Date().toISOString(),
+    footer: { text: 'Retrievium Neural Laboratory' }
+  };
+
+  await fetch(webhookUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      embeds: [embed]
+    })
+  });
+}
+
 type Recipe = {
   requires: Record<string, number>;
   grants: { item: string; qty: number };
@@ -271,13 +321,24 @@ export async function POST(req: Request) {
     }
   }
 
-  // Deduct energy from daily progress
+  // Update daily progress: deduct energy and increment daily crafts counter
   updates.push(
     (async () => {
+      // Get current daily crafts count
+      const { data: currentProgress } = await supabase
+        .from('progress')
+        .select('crafts_done')
+        .eq('wallet', wallet)
+        .eq('ymd', ymd)
+        .maybeSingle();
+
+      const currentCrafts = Number(currentProgress?.crafts_done ?? 0);
+
       const { error } = await supabase
         .from('progress')
         .update({
           energy: currEnergy - adjustedEnergyCost,
+          crafts_done: currentCrafts + 1, // Increment daily crafts counter
           updated_at: new Date().toISOString()
         })
         .eq('wallet', wallet)
@@ -317,6 +378,15 @@ export async function POST(req: Request) {
 
   try {
     await Promise.all(updates);
+
+    // Send Discord webhook for epic/rare crafts
+    if ((recipe.tier === 'EPIC' || recipe.tier === 'RARE') && process.env.DISCORD_WEBHOOK_URL) {
+      try {
+        await sendCraftAnnouncement(wallet, recipe, finalQty, criticalSuccess);
+      } catch (webhookError) {
+        console.error('Webhook failed but craft succeeded:', webhookError);
+      }
+    }
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'craft-failed' }, { status: 500 });
   }
