@@ -6,16 +6,17 @@ export const runtime = 'nodejs';
 
 // Handle Discord OAuth callback
 export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+
+  // Get the proper origin for redirects (define outside try block)
+  const origin = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.APP_ORIGIN || url.origin;
+
   try {
-    const url = new URL(req.url);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state'); // This is the wallet address
     const error = url.searchParams.get('error');
-
-    // Get the proper origin for redirects
-    const origin = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.APP_ORIGIN || url.origin;
 
     if (error) {
       return NextResponse.redirect(
