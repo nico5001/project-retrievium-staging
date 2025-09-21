@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  exchangeDiscordCode,
-  getDiscordUser,
-  addUserToGuild,
-  updateDiscordRoles,
-  calculatePlayerRoles,
-  linkDiscordAccount,
-} from '@/lib/discord';
 import { logMutation, reportError } from '@/lib/telemetry';
+import { supabase } from '@/lib/supabaseAdmin';
 
 export const runtime = 'nodejs';
 
@@ -38,33 +31,59 @@ export async function GET(req: NextRequest) {
 
     const wallet = state; // Wallet address from state
 
-    // Exchange code for tokens
-    const tokenResponse = await exchangeDiscordCode(code);
+    // Exchange code for tokens using simple fetch
+    const tokenResponse = await fetch('https://discord.com/api/v10/oauth2/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: process.env.DISCORD_CLIENT_ID!,
+        client_secret: process.env.DISCORD_CLIENT_SECRET!,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: process.env.DISCORD_REDIRECT_URI || 'http://localhost:3000/api/auth/discord/callback',
+      }),
+    });
 
-    // Get Discord user info
-    const discordUser = await getDiscordUser(tokenResponse.access_token);
-
-    // Link Discord account to wallet
-    await linkDiscordAccount(wallet, discordUser);
-
-    // Add user to Discord server (if not already a member)
-    try {
-      await addUserToGuild(tokenResponse.access_token, discordUser.id);
-    } catch (error) {
-      // User might already be in the server, that's fine
-      console.log('User might already be in Discord server:', error);
+    if (!tokenResponse.ok) {
+      throw new Error('Failed to exchange Discord code');
     }
 
-    // Calculate and assign roles based on game progress
-    const roles = await calculatePlayerRoles(wallet);
-    await updateDiscordRoles(discordUser.id, roles);
+    const tokens = await tokenResponse.json();
+
+    // Get Discord user info
+    const userResponse = await fetch('https://discord.com/api/v10/users/@me', {
+      headers: {
+        Authorization: `Bearer ${tokens.access_token}`,
+      },
+    });
+
+    if (!userResponse.ok) {
+      throw new Error('Failed to fetch Discord user');
+    }
+
+    const discordUser = await userResponse.json();
+
+    // Link Discord account to wallet in database
+    await supabase
+      .from('discord_links')
+      .upsert({
+        wallet,
+        discord_id: discordUser.id,
+        discord_username: discordUser.username,
+        discord_discriminator: discordUser.discriminator,
+        discord_avatar: discordUser.avatar,
+        discord_global_name: discordUser.global_name,
+        linked_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'wallet' });
 
     // Log the successful link
     logMutation('discord_link', {
       wallet,
       discord_id: discordUser.id,
       discord_username: `${discordUser.username}#${discordUser.discriminator}`,
-      roles_assigned: roles.length,
     });
 
     // Redirect back to game with success message
