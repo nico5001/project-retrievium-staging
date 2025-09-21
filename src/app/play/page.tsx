@@ -524,16 +524,16 @@ function ScanMemory({
   }, []);
 
   const getIconComponent = (emoji: string) => {
-    const iconProps = { className: "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10" };
+    const iconProps = { className: "w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-cyan-300" };
     switch (emoji) {
-      case '🧬': return <Atom {...iconProps} />;
-      case '🔬': return <Microscope {...iconProps} />;
-      case '🧪': return <FlaskConical {...iconProps} />;
-      case '⚗️': return <Beaker {...iconProps} />;
-      case '🔋': return <Battery {...iconProps} />;
-      case '💎': return <Gem {...iconProps} />;
-      case '⚡': return <Zap {...iconProps} />;
-      case '🌀': return <Wind {...iconProps} />;
+      case '🧬': return <Atom {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-emerald-400" />;
+      case '🔬': return <Microscope {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-blue-400" />;
+      case '🧪': return <FlaskConical {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-purple-400" />;
+      case '⚗️': return <Beaker {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-orange-400" />;
+      case '🔋': return <Battery {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-yellow-400" />;
+      case '💎': return <Gem {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-pink-400" />;
+      case '⚡': return <Zap {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-amber-400" />;
+      case '🌀': return <Wind {...iconProps} className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-teal-400" />;
       default: return <Settings {...iconProps} />;
     }
   };
@@ -743,6 +743,7 @@ function MissionCard({ mission, onClaim, busy }: {
       {/* Rewards Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 text-xs">
+          <span className="text-slate-300 font-mono font-medium">Reward:</span>
           <span className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-900/30 border border-yellow-700/30 text-yellow-300">
             <Gem className="w-4 h-4" />
             <AnimatedCounter value={mission.reward.rzn} suffix=" RZN" />
@@ -758,14 +759,21 @@ function MissionCard({ mission, onClaim, busy }: {
         <button
           onClick={() => onClaim(mission.id)}
           disabled={busy || !isCompleted || isClaimed}
-          className={`relative overflow-hidden rounded border px-3 py-1.5 text-xs font-semibold ${
+          className={`relative overflow-hidden rounded-lg border px-4 py-2 text-xs font-semibold font-mono tracking-wider transition-all duration-200 ${
             isCompleted && !isClaimed && !busy
-              ? 'border-success-500/50 bg-gradient-to-r from-success-600 to-success-500 text-success-100 hover:from-success-500 hover:to-success-400 hover:shadow-success-500/25 '
-              : 'border-slate-600/30 bg-slate-800/50 text-slate-200 cursor-not-allowed'
+              ? 'border-emerald-400/60 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 hover:shadow-emerald-400/30 hover:shadow-lg hover:scale-105'
+              : isClaimed
+              ? 'border-emerald-700/40 bg-emerald-950/50 text-emerald-300/80 cursor-not-allowed'
+              : busy
+              ? 'border-amber-500/50 bg-gradient-to-r from-amber-600 to-amber-500 text-white cursor-not-allowed'
+              : 'border-slate-600/40 bg-slate-800/60 text-slate-400 cursor-not-allowed'
           }`}
         >
+          {(isCompleted && !isClaimed && !busy) && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+          )}
           <span className="relative z-10">
-            {busy ? 'CLAIMING...' : isClaimed ? 'CLAIMED' : isCompleted ? 'CLAIM REWARD' : 'LOCKED'}
+            {busy ? 'CLAIMING...' : isClaimed ? '✓ CLAIMED' : isCompleted ? 'CLAIM REWARD' : 'LOCKED'}
           </span>
         </button>
       </div>
@@ -1263,9 +1271,9 @@ function DiscordConnection({
   return (
     <div className="flex items-center gap-3">
       {discordLink ? (
-        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-gradient-to-r from-slate-900 to-purple-950/30 px-4 py-2">
+        <div className="flex items-center gap-2 rounded-lg border border-purple-500/30 bg-gradient-to-r from-slate-900 to-purple-950/30 px-3 sm:px-4 py-2">
           <div className="h-2 w-2 rounded-full bg-purple-400 "></div>
-          <div className="font-mono text-purple-100 tracking-wider">
+          <div className="font-mono text-purple-100 tracking-wider text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">
             {discordLink.discord_global_name || `${discordLink.discord_username}#${discordLink.discord_discriminator}`}
           </div>
         </div>
@@ -1273,11 +1281,16 @@ function DiscordConnection({
         <button
           onClick={onConnect}
           disabled={discordLoading}
-          className="relative overflow-hidden rounded-lg border border-purple-500/50 bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-2 font-mono font-semibold text-white hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-500/25  disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative overflow-hidden rounded-lg border border-purple-500/50 bg-gradient-to-r from-purple-600 to-indigo-600 px-4 sm:px-6 py-2 font-mono font-semibold text-white hover:from-purple-500 hover:to-indigo-500 hover:shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
           <span className="relative z-10">
-            {discordLoading ? 'CONNECTING...' : 'CONNECT DISCORD'}
+            {discordLoading ? 'CONNECTING...' : (
+              <>
+                <span className="hidden sm:inline">CONNECT DISCORD</span>
+                <span className="sm:hidden">DISCORD</span>
+              </>
+            )}
           </span>
         </button>
       )}
@@ -1605,17 +1618,17 @@ export default function PlayPage(): JSX.Element {
 
       <main className="relative z-10 mx-auto max-w-6xl px-6 pb-16 pt-20">
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="h-4 w-4 rounded-full bg-cyan-400 "></div>
-              <h1 className="font-mono text-3xl font-bold text-cyan-100 tracking-wider">RETRIEVIUM</h1>
+              <h1 className="font-mono text-2xl sm:text-3xl font-bold text-cyan-100 tracking-wider">RETRIEVIUM</h1>
               <span className="rounded border border-cyan-500/30 bg-cyan-950/50 px-2 py-1 text-xs text-cyan-300 font-mono">
                 PRE-SEASON
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <WalletGate
               me={me}
               onAuthed={async () => {
@@ -2026,7 +2039,7 @@ export default function PlayPage(): JSX.Element {
             <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-br from-slate-900 via-slate-900 to-cyan-950/30 p-6 shadow-2xl backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
                 <div className="h-3 w-3 rounded-full bg-orange-400 "></div>
-                <div className="font-mono font-semibold text-cyan-100 tracking-wider">NEURAL RANKINGS</div>
+                <div className="font-mono font-semibold text-cyan-100 tracking-wider">TOP 10 NEURAL RANKINGS</div>
               </div>
               {lb.length === 0 ? (
                 <div className="text-sm text-slate-200 font-mono bg-slate-800/30 rounded-lg p-4 border border-slate-700/30">
@@ -2034,7 +2047,7 @@ export default function PlayPage(): JSX.Element {
                 </div>
               ) : (
                 <div className="space-y-2 text-sm">
-                  {lb.map((row, idx) => {
+                  {lb.slice(0, 10).map((row, idx) => {
                     const mine =
                       me?.wallet && row.wallet.toLowerCase() === me.wallet.toLowerCase();
                     const rankColors = ['text-yellow-400', 'text-gray-300', 'text-orange-400'];
@@ -2053,14 +2066,9 @@ export default function PlayPage(): JSX.Element {
                           <span className={`w-6 text-center font-mono font-bold ${rankColor}`}>
                             {idx < 3 ? ['🥇', '🥈', '🥉'][idx] : `#${idx + 1}`}
                           </span>
-                          <a
-                            className="font-mono text-slate-200 underline decoration-dotted hover:decoration-solid hover:text-cyan-200 transition-colors"
-                            href={`https://app.roninchain.com/address/${row.wallet}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
+                          <span className="font-mono text-slate-200">
                             {short(row.wallet)}
-                          </a>
+                          </span>
                         </div>
                         <div className="flex items-center gap-4 text-xs font-mono">
                           <span className="text-emerald-300">
