@@ -39,11 +39,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               style={{ backdropFilter: "none", WebkitBackdropFilter: "none" }}
             >
               <div className="flex-1">
-                <img
-                  src="/images/PR-YELLOW-LOGO.png"
-                  alt="Project Retrievium"
-                  className="h-10 sm:h-12 md:h-14 w-auto"
-                />
+                <Link href="/home">
+                  <img
+                    src="/images/PR-YELLOW-LOGO.png"
+                    alt="Project Retrievium"
+                    className="h-10 sm:h-12 md:h-14 w-auto cursor-pointer hover:opacity-80 transition"
+                  />
+                </Link>
               </div>
               <div className="flex-1 hidden md:flex justify-center gap-8 uppercase tracking-wide" />
               <div className="flex-1 flex justify-end">

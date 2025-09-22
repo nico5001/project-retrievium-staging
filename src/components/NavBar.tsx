@@ -13,10 +13,17 @@ export default function NavBar() {
   return (
     <>
       <nav className="fixed inset-x-0 top-0 z-50 bg-transparent text-white h-14 sm:h-16 px-4 sm:px-6 flex items-center">
-        
-        <div className="hidden md:flex flex-1 justify-center gap-8 uppercase tracking-wide">
-      
-          
+
+        {/* Left: Navigation Links */}
+        <div className="flex-1 flex justify-start items-center">
+          <Link
+            href="/play"
+            className={`hover:text-gray-300 transition uppercase tracking-wide ${
+              isActive("/play") ? "text-white" : "text-white/80"
+            }`}
+          >
+            Play
+          </Link>
         </div>
 
         {/* Right: Mint / Burger */}
@@ -53,6 +60,7 @@ export default function NavBar() {
       >
         <div className="px-4 py-4 space-y-2">
           <Link href="/home" onClick={() => setOpen(false)} className="block py-2 text-white/90">Home</Link>
+          <Link href="/play" onClick={() => setOpen(false)} className="block py-2 text-white/90">Play</Link>
           <Link
             href="/mint"
             onClick={() => setOpen(false)}

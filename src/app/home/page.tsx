@@ -57,7 +57,12 @@ export default function Home() {
                   Whitepaper
                 </a>
 
-                
+                <Link
+                  href="/play"
+                  className="w-full sm:w-auto text-center rounded-lg border border-white/70 text-white px-5 py-2 font-semibold hover:bg-white/10 transition"
+                >
+                  Play
+                </Link>
 
             </div>
           </div>

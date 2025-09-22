@@ -79,7 +79,22 @@ const DEFAULT_TEAM: Member[] = [
     avatar: "/images/team/ace.png",
     socials: { x: "https://x.com/cryptoaceph" },
   },
-   
+  {
+    name: "AquaDash",
+    role: "Laboratory Moderator",
+    bio: "The wave that never breaks, the dash that never stops",
+    avatar: "/images/team/aquadash.jpg",
+    socials: { x: "https://x.com/AquaDash25" },
+
+  },
+  {
+    name: "Gianne",
+    role: "Laboratory Moderator",
+    bio: "Experienced moderator driven by desire to innovate while casually exploring the space",
+    avatar: "/images/team/gianne.jpg",
+    socials: { x: "https://x.com/anne_rgg" },
+  },
+
 ];
 
 
