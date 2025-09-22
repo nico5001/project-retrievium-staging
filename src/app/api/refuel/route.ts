@@ -1,32 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseAdmin';
-import { requireWallet, ensureProgress, todayYMD_UTC8, assertSameOrigin } from '@/app/api/_utils';
+import { requireWallet, ensureProgress, todayYMD_UTC8, assertSameOrigin, calculateRefuelCost, getDaySuffix, BASE_COST_RZN, MAX_COST_RZN } from '@/app/api/_utils';
 import { logMutation, reportError } from '@/lib/telemetry';
 
-// Export the calculation function for use in other parts of the app
-export { calculateRefuelCost };
-
-const BASE_COST_RZN = 5;
-const COST_INCREMENT = 5;
-const MAX_COST_RZN = 25;
 const GAIN_ENERGY = 10;
-
-// Calculate escalating refuel cost based on daily usage
-function calculateRefuelCost(dailyRefuelCount: number): number {
-  const cost = BASE_COST_RZN + (dailyRefuelCount * COST_INCREMENT);
-  return Math.min(cost, MAX_COST_RZN);
-}
-
-// Helper function for ordinal numbers (1st, 2nd, 3rd, etc.)
-function getDaySuffix(num: number): string {
-  if (num >= 11 && num <= 13) return 'th';
-  switch (num % 10) {
-    case 1: return 'st';
-    case 2: return 'nd';
-    case 3: return 'rd';
-    default: return 'th';
-  }
-}
 
 export async function POST(req: NextRequest) {
   assertSameOrigin(req);

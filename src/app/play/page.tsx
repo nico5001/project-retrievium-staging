@@ -34,6 +34,7 @@ import {
   FlaskRound,
   Clock
 } from 'lucide-react';
+import { getDaySuffix } from '@/lib/clientUtils';
 
 /* ===========================
    Simplified Color Palette
@@ -1491,16 +1492,6 @@ export default function PlayPage(): JSX.Element {
     }
   }, [push, refreshDiscord]);
 
-  // Helper function for ordinal numbers (1st, 2nd, 3rd, etc.)
-  function getDaySuffix(num: number): string {
-    if (num >= 11 && num <= 13) return 'th';
-    switch (num % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  }
 
   // Actions
   async function doRefuel() {

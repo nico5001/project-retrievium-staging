@@ -117,3 +117,25 @@ export function assertSameOrigin(req: NextRequest) {
 
   throw new Response('forbidden', { status: 403 });
 }
+
+// Refuel cost calculation utilities
+const BASE_COST_RZN = 5;
+const COST_INCREMENT = 5;
+const MAX_COST_RZN = 25;
+
+export function calculateRefuelCost(dailyRefuelCount: number): number {
+  const cost = BASE_COST_RZN + (dailyRefuelCount * COST_INCREMENT);
+  return Math.min(cost, MAX_COST_RZN);
+}
+
+export function getDaySuffix(num: number): string {
+  if (num >= 11 && num <= 13) return 'th';
+  switch (num % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
+export { BASE_COST_RZN, COST_INCREMENT, MAX_COST_RZN };
