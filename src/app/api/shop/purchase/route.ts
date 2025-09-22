@@ -84,9 +84,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    
-    const prog = await ensureProgress(wallet);
-    const currentRzn = prog.rzn ?? 0;
+    // Check balance from season_stats (total RZN)
+    const { data: seasonData, error: seasonError } = await supabase
+      .from('season_stats')
+      .select('rzn')
+      .eq('wallet', wallet)
+      .maybeSingle();
+
+    if (seasonError) {
+      return NextResponse.json({ success: false, message: 'Failed to check balance' }, { status: 500 });
+    }
+
+    const currentRzn = seasonData?.rzn ?? 0;
     if (currentRzn < item.price) {
       return NextResponse.json({
         success: false,
@@ -109,33 +118,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, message: insErr.message }, { status: 409 });
     }
 
-    
-    const { data: updProg, error: updErr } = await supabase
-      .from('progress')
-      .update({ rzn: (currentRzn - item.price), updated_at: new Date().toISOString() } as any)
+    // Update season stats (total RZN)
+    const { data: updatedStats, error: updErr } = await supabase
+      .from('season_stats')
+      .update({ rzn: currentRzn - item.price })
       .eq('wallet', wallet)
-      .eq('ymd', ymd)
       .gte('rzn', item.price)
       .select('rzn')
       .maybeSingle();
 
-    if (updErr || !updProg) {
+    if (updErr || !updatedStats) {
+      // Rollback purchase
       await supabase.from('shop_purchases').delete().eq('wallet', wallet).eq('item_id', itemId);
       return NextResponse.json({
         success: false,
         message: updErr?.message || 'Balance changed; purchase cancelled',
       }, { status: 409 });
     }
-
-  
-    await supabase
-      .from('season_stats')
-      .upsert({ wallet, rzn: (prog.rzn ?? 0) - item.price }, { onConflict: 'wallet' });
-
-    await supabase
-      .from('season_stats')
-      .update({ purchases: (prog.purchases ?? 0) + 1 } as any)
-      .eq('wallet', wallet);
 
     // Send Discord webhook for whitelist purchases
     console.log('🚀 Attempting to send webhook for:', { wallet, itemName: item.name, itemType: item.type });
@@ -146,11 +145,11 @@ export async function POST(req: NextRequest) {
       console.error('❌ Webhook failed but purchase succeeded:', webhookError);
     }
 
-    logMutation('shop_purchase', { wallet, itemId, price: item.price, newBalance: updProg.rzn });
+    logMutation('shop_purchase', { wallet, itemId, price: item.price, newBalance: updatedStats.rzn });
     return NextResponse.json({
       success: true,
       message: `Successfully purchased ${item.name}!`,
-      newBalance: updProg.rzn,
+      newBalance: updatedStats.rzn,
       item: { id: itemId, name: item.name, type: item.type },
     });
   } catch (e) {

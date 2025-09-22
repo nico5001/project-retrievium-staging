@@ -15,6 +15,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Project Retrievium",
   description: "A pfp collection on Ronin with evolving lore and utility.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export const ethnocentric = localFont({
@@ -38,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               className="fixed inset-x-0 top-0 z-50 bg-transparent text-white h-16 sm:h-20 px-6 sm:px-8 flex items-center"
               style={{ backdropFilter: "none", WebkitBackdropFilter: "none" }}
             >
-              <div className="flex-1">
+              <div className="shrink-0">
                 <Link href="/home">
                   <img
                     src="/images/PR-YELLOW-LOGO.png"

@@ -1392,7 +1392,14 @@ export default function PlayPage(): JSX.Element {
     setDiscordLoading(true);
 
     // Create Discord OAuth URL with wallet as state
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 'http://localhost:3000/api/auth/discord/callback')}&response_type=code&scope=identify%20email%20guilds.join&state=${encodeURIComponent(me.wallet)}`;
+    const redirectUri = process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI || 'http://localhost:3000/api/auth/discord/callback';
+    console.log('🔧 DEBUG: Discord redirect URI:', redirectUri);
+    console.log('🔧 DEBUG: Environment variables:', {
+      NEXT_PUBLIC_DISCORD_CLIENT_ID: process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID,
+      NEXT_PUBLIC_DISCORD_REDIRECT_URI: process.env.NEXT_PUBLIC_DISCORD_REDIRECT_URI
+    });
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${encodeURIComponent(process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID!)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20email%20guilds.join&state=${encodeURIComponent(me.wallet)}`;
+    console.log('🔧 DEBUG: Full Discord OAuth URL:', discordAuthUrl);
 
     // Open Discord OAuth in new window
     window.open(discordAuthUrl, '_blank');
