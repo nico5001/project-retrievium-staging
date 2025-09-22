@@ -103,7 +103,7 @@ type DiscordLink = {
 type ScanRun = { runId: string; seed: string } | null;
 
 type DropItem = { key: string; qty: number };
-type StabilizeResult = { ok: boolean; rzn: number; items: DropItem[]; seed?: string };
+type StabilizeResult = { ok: boolean; rzn: number; items: DropItem[]; seed?: string; failed?: boolean; energyLost?: number; rznPenalty?: number };
 
 type Recipe = {
   key: string;
@@ -741,8 +741,8 @@ function MissionCard({ mission, onClaim, busy }: {
       </div>
 
       {/* Rewards Section */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-slate-300 font-mono font-medium">Reward:</span>
           <span className="flex items-center gap-1 px-2 py-1 rounded bg-yellow-900/30 border border-yellow-700/30 text-yellow-300">
             <Gem className="w-4 h-4" />
@@ -759,7 +759,7 @@ function MissionCard({ mission, onClaim, busy }: {
         <button
           onClick={() => onClaim(mission.id)}
           disabled={busy || !isCompleted || isClaimed}
-          className={`relative overflow-hidden rounded-lg border px-4 py-2 text-xs font-semibold font-mono tracking-wider transition-all duration-200 ${
+          className={`relative overflow-hidden rounded-lg border px-4 py-3 sm:py-2 text-sm sm:text-xs font-semibold font-mono tracking-wider transition-all duration-200 flex-shrink-0 w-full sm:w-auto min-h-[44px] sm:min-h-auto ${
             isCompleted && !isClaimed && !busy
               ? 'border-emerald-400/60 bg-gradient-to-r from-emerald-600 to-emerald-500 text-white hover:from-emerald-500 hover:to-emerald-400 hover:shadow-emerald-400/30 hover:shadow-lg hover:scale-105'
               : isClaimed
@@ -1323,6 +1323,10 @@ export default function PlayPage(): JSX.Element {
   const [shopLoading, setShopLoading] = React.useState(false);
   const [purchaseResult, setPurchaseResult] = React.useState<PurchaseResult | null>(null);
 
+  // ---- REFUEL state
+  const [refuelCost, setRefuelCost] = React.useState(5); // Default to base cost
+  const [dailyRefuelCount, setDailyRefuelCount] = React.useState(0);
+
   // Toast (hook lives here — component scope only)
   const { toast } = useToast();
 
@@ -1420,6 +1424,20 @@ export default function PlayPage(): JSX.Element {
     }
   }, []);
 
+  const refreshRefuelCost = React.useCallback(async () => {
+    try {
+      const data = await fetchJSON<{
+        currentCost: number;
+        dailyRefuelCount: number;
+      }>('/api/refuel', { cache: 'no-store' });
+      setRefuelCost(data.currentCost);
+      setDailyRefuelCount(data.dailyRefuelCount);
+    } catch {
+      setRefuelCost(5); // Fallback to base cost
+      setDailyRefuelCount(0);
+    }
+  }, []);
+
   const refreshEquipment = React.useCallback(async () => {
     try {
       const data = await fetchJSON<{ core: string }>('/api/equip', { cache: 'no-store' });
@@ -1435,7 +1453,8 @@ export default function PlayPage(): JSX.Element {
     refreshLb();
     refreshShop();
     refreshEquipment();
-  }, [refreshMe, refreshInv, refreshLb, refreshShop, refreshEquipment]);
+    refreshRefuelCost();
+  }, [refreshMe, refreshInv, refreshLb, refreshShop, refreshEquipment, refreshRefuelCost]);
 
   // Load Discord status when wallet changes
   React.useEffect(() => {
@@ -1472,13 +1491,36 @@ export default function PlayPage(): JSX.Element {
     }
   }, [push, refreshDiscord]);
 
+  // Helper function for ordinal numbers (1st, 2nd, 3rd, etc.)
+  function getDaySuffix(num: number): string {
+    if (num >= 11 && num <= 13) return 'th';
+    switch (num % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  }
+
   // Actions
   async function doRefuel() {
     try {
       setBusy(true);
-      await fetchJSON('/api/refuel', { method: 'POST' });
-      await Promise.all([refreshMe(), refreshInv(), refreshLb()]);
-      push({ message: 'Refueled +10 ENERGY (-5 RZN).', type: 'success' });
+      const result = await fetchJSON<{
+        ok: boolean;
+        costPaid: number;
+        refuelCount: number;
+        nextRefuelCost: number;
+      }>('/api/refuel', { method: 'POST' });
+
+      await Promise.all([refreshMe(), refreshInv(), refreshLb(), refreshRefuelCost()]);
+
+      const costMessage = result.costPaid === 5 ? '(-5 RZN)' : `(-${result.costPaid} RZN)`;
+      const countMessage = result.refuelCount > 1 ? ` (${result.refuelCount}${getDaySuffix(result.refuelCount)} today)` : '';
+      push({
+        message: `Refueled +10 ENERGY ${costMessage}${countMessage}.`,
+        type: 'success'
+      });
     } catch (e: any) {
       push({ message: e?.message || 'Refuel failed', type: 'error' });
     } finally {
@@ -1522,7 +1564,7 @@ export default function PlayPage(): JSX.Element {
   }
 
   async function completeScan(score: number) {
-    if (!scan) return;
+    if (!scan || busy) return; // Prevent multiple calls if already processing
     try {
       setBusy(true);
       await fetchJSON('/api/scan/complete', {
@@ -1550,7 +1592,15 @@ export default function PlayPage(): JSX.Element {
       });
       setStabRes(j);
       await Promise.all([refreshMe(), refreshInv(), refreshLb()]);
-      push({ message: `Stabilization complete: +${j.rzn} RZN`, type: 'success' });
+
+      if (j.failed) {
+        push({
+          message: `Stabilization Complete: ⚠️ FAILURE ⚠️ (-${j.energyLost} Energy, -${j.rznPenalty} RZN)`,
+          type: 'error'
+        });
+      } else {
+        push({ message: `Stabilization Complete: +${j.rzn} RZN`, type: 'success' });
+      }
     } catch (e: any) {
       push({ message: e?.message || 'Stabilize failed', type: 'error' });
     } finally {
@@ -1765,9 +1815,9 @@ export default function PlayPage(): JSX.Element {
 
                   <button
                     onClick={doRefuel}
-                    disabled={busy || rzn < 5}
+                    disabled={busy || rzn < refuelCost}
                     className={`relative overflow-hidden rounded-lg border px-4 py-3 transform  ${
-                      rzn >= 5
+                      rzn >= refuelCost
                         ? 'border-success-500/50 bg-gradient-to-r from-success-600 to-success-500 text-white hover:from-success-500 hover:to-success-400 hover:shadow-success-500/25 '
                         : 'border-slate-600/30 bg-slate-800/50 text-slate-100 cursor-not-allowed'
                     }`}
@@ -1776,7 +1826,14 @@ export default function PlayPage(): JSX.Element {
                       <span className="text-lg">⛽</span>
                       <div>
                         <div className="text-sm font-semibold">REFUEL CORE</div>
-                        <div className="text-xs opacity-90">+10 Energy / -5 RZN</div>
+                        <div className="text-xs opacity-90">
+                          +10 Energy / -{refuelCost} RZN
+                          {dailyRefuelCount > 0 && (
+                            <span className="text-yellow-300 ml-1">
+                              ({dailyRefuelCount + 1}{getDaySuffix(dailyRefuelCount + 1)} today)
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </button>

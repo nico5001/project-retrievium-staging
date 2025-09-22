@@ -9,6 +9,20 @@ const COST = 12;
 type ItemQty = { key: string; qty: number };
 type DropResult = { rzn: number; items: ItemQty[]; seed: string };
 
+// Failure rates by risk level
+const FAILURE_RATES = {
+  SAFE: 0.05,      // 5% chance to fail
+  STANDARD: 0.15,  // 15% chance to fail
+  OVERCLOCK: 0.30  // 30% chance to fail
+} as const;
+
+// Failure penalties
+const FAILURE_PENALTIES = {
+  SAFE: { energyLoss: 0.5, rewardLoss: 0 },      // Lose half energy, no RZN loss
+  STANDARD: { energyLoss: 0.75, rewardLoss: 0.1 }, // Lose 3/4 energy, lose 10% of potential reward (~1 RZN)
+  OVERCLOCK: { energyLoss: 1.0, rewardLoss: 0.2 }  // Lose all energy, lose 20% of potential reward (~3 RZN)
+} as const;
+
 
 const CORE_BONUS: Record<string, number> = {
   none: 0,
@@ -74,6 +88,16 @@ function resolveStabilizeDrops(
   return { rzn: rznBase, items, seed };
 }
 
+function checkStabilizeFailure(
+  risk: 'SAFE' | 'STANDARD' | 'OVERCLOCK',
+  wallet: string,
+  nth: number
+): boolean {
+  const seed = `${wallet}:fail:${risk}:${nth}`;
+  const rand = makeRng(seed);
+  return rand() < FAILURE_RATES[risk];
+}
+
 export async function POST(req: NextRequest) {
   assertSameOrigin(req);
   try {
@@ -87,9 +111,11 @@ export async function POST(req: NextRequest) {
     if ((prog.energy ?? 0) < COST) return NextResponse.json({ error: 'no-energy' }, { status: 400 });
 
     const nth = (prog.stabilize_count ?? 0) + 1;
-    const drops = resolveStabilizeDrops(risk, wallet, nth);
 
-    
+    // Check for failure first
+    const failed = checkStabilizeFailure(risk, wallet, nth);
+
+    // Get equipped core
     let equipped: string = 'none';
     const { data: eq } = await supabase
       .from('equipment')
@@ -107,20 +133,43 @@ export async function POST(req: NextRequest) {
     }
     const mult = CORE_BONUS[equipped] ?? 0;
 
-    
-    const rznAwarded = Math.floor(drops.rzn * (1 + mult));
-    const items = drops.items;
+    // Calculate what the rewards would have been
+    const drops = resolveStabilizeDrops(risk, wallet, nth);
+    const potentialRznReward = Math.floor(drops.rzn * (1 + mult));
+
+    let rznAwarded = 0;
+    let items: ItemQty[] = [];
+    let energyLost = COST;
+    let rznPenalty = 0;
+
+    if (failed) {
+      // Apply failure penalties
+      const penalty = FAILURE_PENALTIES[risk];
+      energyLost = Math.floor(COST * penalty.energyLoss);
+
+      // Calculate RZN penalty as percentage of potential reward
+      rznPenalty = Math.ceil(potentialRznReward * penalty.rewardLoss);
+
+      // No rewards on failure
+      rznAwarded = 0;
+      items = [];
+    } else {
+      // Success - give normal rewards
+      rznAwarded = potentialRznReward;
+      items = drops.items;
+      energyLost = COST;
+    }
 
     const updates: Promise<void>[] = [];
 
-    
+    // Update progress with actual energy lost
     updates.push(
       (async () => {
         const { error } = await supabase
           .from('progress')
           .update(
             {
-              energy: (prog.energy ?? 0) - COST,
+              energy: (prog.energy ?? 0) - energyLost,
               stabilize_count: nth,
               scan_ready: false,
               updated_at: new Date().toISOString(),
@@ -132,7 +181,7 @@ export async function POST(req: NextRequest) {
       })()
     );
 
-    
+    // Update season stats with RZN changes and penalties
     updates.push(
       (async () => {
         const { data: ss, error: selErr } = await supabase
@@ -142,7 +191,8 @@ export async function POST(req: NextRequest) {
           .maybeSingle();
         if (selErr) throw new Error(selErr.message);
 
-        const nextRzn = (Number(ss?.rzn) || 0) + rznAwarded;
+        const currentRzn = Number(ss?.rzn) || 0;
+        const nextRzn = Math.max(0, currentRzn + rznAwarded - rznPenalty); // Add reward, subtract penalty
         const nextStab = (Number(ss?.stabilizes) || 0) + 1;
 
         const { error: statErr } = await supabase
@@ -176,8 +226,16 @@ export async function POST(req: NextRequest) {
 
     await Promise.all(updates);
 
-    logMutation('stabilize', { wallet, risk, nth, equipped, rznAwarded });
-    return NextResponse.json({ ok: true, rzn: rznAwarded, items, seed: drops.seed });
+    logMutation('stabilize', { wallet, risk, nth, equipped, rznAwarded, failed, rznPenalty, energyLost });
+    return NextResponse.json({
+      ok: true,
+      rzn: rznAwarded,
+      items,
+      seed: drops.seed,
+      failed,
+      energyLost,
+      rznPenalty: failed ? rznPenalty : 0
+    });
   } catch (e) {
     reportError(e, { route: 'stabilize' });
     return NextResponse.json({ error: 'stabilize-failed' }, { status: 500 });

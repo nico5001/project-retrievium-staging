@@ -16,7 +16,7 @@ const ToastViewport = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed z-[100] flex max-h-screen w-full flex-col-reverse p-4 md:max-w-[420px] md:flex-col md:p-6",
-      "bottom-0 right-0",
+      "top-20 left-1/2 transform -translate-x-1/2 md:top-auto md:bottom-0 md:right-0 md:left-auto md:transform-none",
       className
     )}
     {...props}
@@ -29,8 +29,8 @@ const toastVariants = cva(
     "group pointer-events-auto relative w-full rounded-md border p-4 pr-8 shadow-lg transition-all",
     "data-[state=open]:animate-in data-[state=closed]:animate-out",
     "data-[state=closed]:fade-out-80 data-[state=open]:fade-in-80",
-    "data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-right-full",
-    "sm:data-[state=closed]:slide-out-to-right-full sm:data-[state=open]:slide-in-from-right-full",
+    "data-[state=closed]:slide-out-to-top-full data-[state=open]:slide-in-from-top-full",
+    "md:data-[state=closed]:slide-out-to-right-full md:data-[state=open]:slide-in-from-right-full",
     "bg-background text-foreground"
   ),
   {
