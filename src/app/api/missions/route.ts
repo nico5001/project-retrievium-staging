@@ -24,7 +24,7 @@ export async function GET() {
     // Get today's progress
     const { data: progress } = await supabase
       .from('progress')
-      .select('scans_done, stabilize_count, crafts_done')
+      .select('scans_done, stabilize_count, crafts_done, daily_shares')
       .eq('wallet', wallet)
       .eq('ymd', ymd)
       .maybeSingle();
@@ -76,6 +76,16 @@ export async function GET() {
         completed: (progress?.crafts_done ?? 0) >= 1,
         claimed: claimedSet.has('daily_craft'),
       },
+      {
+        id: 'daily_share',
+        title: 'Social Spreader',
+        description: 'Share on X today',
+        progress: progress?.daily_shares ?? 0,
+        target: 1,
+        reward: { rzn: 150, items: [] },
+        completed: (progress?.daily_shares ?? 0) >= 1,
+        claimed: claimedSet.has('daily_share'),
+      },
     ];
 
     return NextResponse.json({ missions });
@@ -93,7 +103,7 @@ export async function POST(req: NextRequest) {
     const ymd = todayYMD_UTC8();
 
     // Validate mission ID
-    const validMissions = ['daily_scan', 'daily_stabilize', 'daily_craft'];
+    const validMissions = ['daily_scan', 'daily_stabilize', 'daily_craft', 'daily_share'];
     if (!validMissions.includes(missionId)) {
       return NextResponse.json({ error: 'invalid_mission' }, { status: 400 });
     }
@@ -114,7 +124,7 @@ export async function POST(req: NextRequest) {
     // Get current progress to validate completion
     const { data: progress } = await supabase
       .from('progress')
-      .select('scans_done, stabilize_count, crafts_done')
+      .select('scans_done, stabilize_count, crafts_done, daily_shares')
       .eq('wallet', wallet)
       .eq('ymd', ymd)
       .maybeSingle();
@@ -141,6 +151,10 @@ export async function POST(req: NextRequest) {
       case 'daily_craft':
         completed = (progress?.crafts_done ?? 0) >= 1;
         reward = { rzn: 30, items: [{ item: 'shard_rare', qty: 1 }] };
+        break;
+      case 'daily_share':
+        completed = (progress?.daily_shares ?? 0) >= 1;
+        reward = { rzn: 150, items: [] };
         break;
     }
 
