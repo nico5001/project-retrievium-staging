@@ -10,7 +10,11 @@ export async function POST(req: NextRequest) {
 
   try {
     const wallet = await requireWallet();
-    const { referralCode } = await req.json();
+    console.log('Apply referral code - wallet:', wallet);
+
+    const body = await req.json();
+    const { referralCode } = body;
+    console.log('Apply referral code - request body:', body);
 
     if (!referralCode || typeof referralCode !== 'string') {
       return NextResponse.json({ error: 'referral_code_required' }, { status: 400 });
@@ -100,8 +104,8 @@ export async function POST(req: NextRequest) {
         referral_code: code,
         referrer_wallet: referrerWallet,
         referee_wallet: wallet,
-        is_active: true,
-        created_at: new Date().toISOString()
+        is_active: true
+        // created_at will be auto-populated by database
       });
 
     if (referralTableError) {
@@ -112,7 +116,15 @@ export async function POST(req: NextRequest) {
         referrerWallet,
         referralCode: code
       });
-      console.error('Failed to insert into referrals table but referral was applied:', referralTableError);
+      console.error('Failed to insert into referrals table but referral was applied:', {
+        error: referralTableError,
+        attemptedData: {
+          referral_code: code,
+          referrer_wallet: referrerWallet,
+          referee_wallet: wallet,
+          is_active: true
+        }
+      });
     }
 
     // Initialize user stats if they don't exist
@@ -151,10 +163,11 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    reportError(error, { route: 'apply_referral_code' });
+    console.error('Apply referral code error:', error);
+    reportError(error, { route: 'apply_referral_code', wallet, referralCode });
     return NextResponse.json({
-      error: 'unauthorized',
-      message: 'Authentication required'
-    }, { status: 401 });
+      error: 'server_error',
+      message: 'An error occurred while applying the referral code'
+    }, { status: 500 });
   }
 }
