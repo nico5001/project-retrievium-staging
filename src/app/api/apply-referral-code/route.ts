@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       .from('custom_referral_codes')
       .select('wallet_address')
       .eq('custom_code', code)
-      .single();
+      .maybeSingle();
 
     console.log('Custom code result:', { customCode, customCodeError });
 
