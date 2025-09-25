@@ -22,11 +22,10 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (customCode) {
-      // Increment usage count
-      await supabase
-        .from('custom_referral_codes')
-        .update({ usage_count: supabase.raw('usage_count + 1') })
-        .eq('custom_code', code.toUpperCase());
+      // Increment usage count using RPC function
+      await supabase.rpc('increment_usage_count', {
+        p_custom_code: code.toUpperCase()
+      });
 
       return NextResponse.json({
         wallet: customCode.wallet_address,

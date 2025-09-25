@@ -34,7 +34,7 @@ interface ReferralSystemProps {
 }
 
 export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSystemProps) {
-  const [referralData, setReferralData] = useState<ReferralStats | null>(null);
+  const [referralData, setReferralData] = useState<ReferralData | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inputCode, setInputCode] = useState('');
@@ -127,23 +127,26 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
     setIsSubmitting(true);
 
     try {
-      const result = await referralService.applyReferralCode(wallet, inputCode.toUpperCase());
+      // Use our resolve API to check the referral code
+      const resolveResponse = await fetch(`/api/resolve-referral-code?code=${inputCode.toUpperCase()}`);
+      const resolveData = await resolveResponse.json();
 
-      if (result.success) {
+      if (resolveResponse.ok && resolveData.wallet) {
+        // Store referral relationship
+        localStorage.setItem(`referrer_${wallet}`, JSON.stringify({
+          referrer: resolveData.wallet,
+          joinDate: new Date().toISOString(),
+          referralCode: inputCode.toUpperCase()
+        }));
+
         // Update UI state
         setHasReferrer(true);
         setReferrerInfo(inputCode.toUpperCase());
         setInputCode('');
 
-        // Reload referral data
-        const updatedStats = await referralService.getReferralStats(wallet);
-        if (updatedStats) {
-          setReferralData(updatedStats);
-        }
-
-        alert('Referral code successfully applied! Your referrer will now get 5% of your RZN earnings.');
+        alert('Referral code successfully applied! Your referrer will now get bonuses from your activity.');
       } else {
-        alert(result.error || 'Failed to apply referral code. Please try again.');
+        alert(resolveData.error || 'Invalid referral code. Please try again.');
       }
 
     } catch (error) {

@@ -21,7 +21,9 @@ export function useAchievements(wallet?: string) {
     referralsMade: 0,
     socialShares: 0,
     lastLogin: new Date(),
-    energySpent: 0
+    energySpent: 0,
+    dailySharesCompleted: 0,
+    lastDailyShare: null
   });
 
   const [userAchievements, setUserAchievements] = useState<UserAchievements>({

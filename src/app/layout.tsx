@@ -27,7 +27,7 @@ export const viewport = {
   shrinkToFit: false
 };
 
-export const ethnocentric = localFont({
+const ethnocentric = localFont({
   src: [
     { path: "../../public/fonts/ethnocentric/Ethnocentric-Regular.woff2", weight: "400", style: "normal" },
     { path: "../../public/fonts/ethnocentric/Ethnocentric-Italic.woff2",   weight: "400", style: "italic" },
