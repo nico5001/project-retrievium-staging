@@ -73,6 +73,39 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
         setReferralUrl(finalUrl);
         setReferralCode(resolvedCode);
 
+        // Check if user already has a referrer from database (referral bonuses API)
+        try {
+          const referralResponse = await fetch('/api/referral-bonuses');
+          if (referralResponse.ok) {
+            const referralData = await referralResponse.json();
+            if (referralData.isReferred && referralData.referredBy) {
+              // User has referrer in database - show active state
+              setHasReferrer(true);
+              // Try to find the original referral code from localStorage or use referrer wallet
+              const storedReferrer = localStorage.getItem(`referrer_${wallet}`);
+              if (storedReferrer) {
+                const parsed = JSON.parse(storedReferrer);
+                setReferrerInfo(parsed.referralCode || referralData.referredBy.slice(2, 8).toUpperCase());
+              } else {
+                setReferrerInfo(referralData.referredBy.slice(2, 8).toUpperCase());
+              }
+            } else {
+              // No referrer in database - show input form (even if localStorage has data)
+              setHasReferrer(false);
+              setReferrerInfo(null);
+            }
+          } else {
+            // API error - assume no referrer to allow re-entry
+            setHasReferrer(false);
+            setReferrerInfo(null);
+          }
+        } catch (error) {
+          console.error('Error checking referral status:', error);
+          // On error, assume no referrer to allow re-entry
+          setHasReferrer(false);
+          setReferrerInfo(null);
+        }
+
       } catch (error) {
         console.error('Error loading referral data:', error);
       } finally {
@@ -127,14 +160,23 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
     setIsSubmitting(true);
 
     try {
-      // Use our resolve API to check the referral code
-      const resolveResponse = await fetch(`/api/resolve-referral-code?code=${inputCode.toUpperCase()}`);
-      const resolveData = await resolveResponse.json();
+      // Apply referral code to database
+      const response = await fetch('/api/apply-referral-code', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          referralCode: inputCode.toUpperCase()
+        })
+      });
 
-      if (resolveResponse.ok && resolveData.wallet) {
-        // Store referral relationship
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Also store in localStorage for backwards compatibility
         localStorage.setItem(`referrer_${wallet}`, JSON.stringify({
-          referrer: resolveData.wallet,
+          referrer: data.referrerWallet,
           joinDate: new Date().toISOString(),
           referralCode: inputCode.toUpperCase()
         }));
@@ -144,9 +186,9 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
         setReferrerInfo(inputCode.toUpperCase());
         setInputCode('');
 
-        alert('Referral code successfully applied! Your referrer will now get bonuses from your activity.');
+        alert(data.message || 'Referral code successfully applied! Your referrer will now get bonuses from your activity.');
       } else {
-        alert(resolveData.error || 'Invalid referral code. Please try again.');
+        alert(data.message || data.error || 'Invalid referral code. Please try again.');
       }
 
     } catch (error) {

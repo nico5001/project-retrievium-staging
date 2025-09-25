@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseAdmin';
 import { ensureProgress, requireWallet, todayYMD_UTC8, assertSameOrigin } from '@/app/api/_utils';
 import { logMutation, reportError } from '@/lib/telemetry';
+import { awardReferralBonus } from '../_utils/referral-bonus';
 
 
 const COST = 12;
@@ -225,6 +226,15 @@ export async function POST(req: NextRequest) {
     }
 
     await Promise.all(updates);
+
+    // Award referral bonus if user has a referrer (only if they earned RZN)
+    if (rznAwarded > 0) {
+      try {
+        await awardReferralBonus(wallet, rznAwarded, 'stabilize');
+      } catch (bonusError) {
+        console.error('Referral bonus failed but stabilize succeeded:', bonusError);
+      }
+    }
 
     logMutation('stabilize', { wallet, risk, nth, equipped, rznAwarded, failed, rznPenalty, energyLost });
     return NextResponse.json({

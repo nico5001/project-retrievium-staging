@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabaseAdmin';
 import { ensureProgress, requireWallet, todayYMD_UTC8, assertSameOrigin } from '@/app/api/_utils';
 import { logMutation, reportError } from '@/lib/telemetry';
+import { awardReferralBonus } from '../../_utils/referral-bonus';
 
 const BASE = 3;
 
@@ -116,6 +117,13 @@ export async function POST(req: NextRequest) {
     );
 
     await Promise.all(updates);
+
+    // Award referral bonus if user has a referrer
+    try {
+      await awardReferralBonus(wallet, add, 'scan');
+    } catch (bonusError) {
+      console.error('Referral bonus failed but scan succeeded:', bonusError);
+    }
 
     logMutation('scan_complete', { wallet, runId, score, equipped, rznAdded: add });
     return NextResponse.json({ ok: true, rznAdded: add });

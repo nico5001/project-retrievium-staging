@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireWallet, todayYMD_UTC8 } from '../_utils'; // adjust path if needed
 import { supabase } from '@/lib/supabaseAdmin';
+import { awardReferralBonus } from '../_utils/referral-bonus';
 
 export const runtime = 'nodejs';
 
