@@ -28,6 +28,20 @@ interface ReferralData {
   }[];
 }
 
+interface ReferralStats {
+  totalReferrals: number;
+  activeThisWeek: number;
+  totalRznEarned: number;
+  todayRznEarned: number;
+  recentEarnings: {
+    wallet: string;
+    amount: number;
+    source: string;
+    timestamp: Date;
+    type: 'revenue_share' | 'milestone';
+  }[];
+}
+
 interface ReferralSystemProps {
   wallet?: string;
   onRewardClaimed?: (amount: number) => void;
@@ -35,6 +49,7 @@ interface ReferralSystemProps {
 
 export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSystemProps) {
   const [referralData, setReferralData] = useState<ReferralData | null>(null);
+  const [referralStats, setReferralStats] = useState<ReferralStats | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inputCode, setInputCode] = useState('');
@@ -104,6 +119,17 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
           // On error, assume no referrer to allow re-entry
           setHasReferrer(false);
           setReferrerInfo(null);
+        }
+
+        // Fetch referral statistics
+        try {
+          const statsResponse = await fetch('/api/referral-stats');
+          if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            setReferralStats(statsData);
+          }
+        } catch (error) {
+          console.error('Error fetching referral stats:', error);
         }
 
       } catch (error) {
@@ -223,19 +249,27 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
 
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="text-center p-3 sm:p-4 bg-white/5 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-white mb-1">0</div>
+            <div className="text-lg sm:text-2xl font-bold text-white mb-1">
+              {referralStats?.totalReferrals || 0}
+            </div>
             <div className="text-xs sm:text-sm text-white/70">Total Referrals</div>
           </div>
           <div className="text-center p-3 sm:p-4 bg-white/5 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-green-400 mb-1">0</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-400 mb-1">
+              {referralStats?.activeThisWeek || 0}
+            </div>
             <div className="text-xs sm:text-sm text-white/70">Active This Week</div>
           </div>
           <div className="text-center p-3 sm:p-4 bg-white/5 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-yellow-400 mb-1">0</div>
+            <div className="text-lg sm:text-2xl font-bold text-yellow-400 mb-1">
+              {referralStats?.totalRznEarned || 0}
+            </div>
             <div className="text-xs sm:text-sm text-white/70">Total RZN Earned</div>
           </div>
           <div className="text-center p-3 sm:p-4 bg-white/5 rounded-lg">
-            <div className="text-lg sm:text-2xl font-bold text-purple-400 mb-1">0</div>
+            <div className="text-lg sm:text-2xl font-bold text-purple-400 mb-1">
+              {referralStats?.todayRznEarned || 0}
+            </div>
             <div className="text-xs sm:text-sm text-white/70">Today's 5% Share</div>
           </div>
         </div>
@@ -376,11 +410,11 @@ export default function ReferralSystem({ wallet, onRewardClaimed }: ReferralSyst
       </div>
 
       {/* Recent Earnings */}
-      {referralData?.recentEarnings && referralData.recentEarnings.length > 0 && (
+      {referralStats?.recentEarnings && referralStats.recentEarnings.length > 0 && (
         <div className="bg-black/20 border border-white/10 rounded-lg p-6 backdrop-blur-sm">
           <h3 className="text-lg font-semibold text-white mb-4">Recent Referral Earnings</h3>
           <div className="space-y-3">
-            {referralData.recentEarnings.slice(-10).reverse().map((earning, index) => {
+            {referralStats.recentEarnings.slice(-10).reverse().map((earning, index) => {
               const timestamp = new Date(earning.timestamp);
               return (
                 <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">

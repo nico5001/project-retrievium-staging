@@ -38,21 +38,29 @@ export async function awardReferralBonus(
       return { success: true };
     }
 
-    // Get current referrer's RZN from season_stats
+    // Get current referrer's RZN from season_stats (case-insensitive)
     const { data: referrerStats } = await supabase
       .from('season_stats')
       .select('rzn')
-      .eq('wallet', referrerWallet)
+      .ilike('wallet', referrerWallet)
       .single();
 
     const currentRzn = referrerStats?.rzn || 0;
     const newRzn = currentRzn + bonusAmount;
 
-    // Update referrer's RZN
+    // Update referrer's RZN (find existing record first for case-insensitive update)
+    const { data: existingStats } = await supabase
+      .from('season_stats')
+      .select('wallet, rzn')
+      .ilike('wallet', referrerWallet)
+      .single();
+
+    const actualWallet = existingStats?.wallet || referrerWallet;
+
     const { error: updateError } = await supabase
       .from('season_stats')
       .upsert({
-        wallet: referrerWallet,
+        wallet: actualWallet,
         rzn: newRzn,
         updated_at: new Date().toISOString()
       }, {

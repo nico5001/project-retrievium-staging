@@ -13,11 +13,8 @@ export async function POST(req: NextRequest) {
 
   try {
     wallet = await requireWallet();
-    console.log('Apply referral code - wallet:', wallet);
-
     const body = await req.json();
     referralCode = body.referralCode;
-    console.log('Apply referral code - request body:', body);
 
     if (!referralCode || typeof referralCode !== 'string') {
       return NextResponse.json({ error: 'referral_code_required' }, { status: 400 });
@@ -26,14 +23,11 @@ export async function POST(req: NextRequest) {
     const code = referralCode.toUpperCase().trim();
 
     // Check if user already has a referrer
-    console.log('Checking if user already has referrer...');
     const { data: existingPlayer, error: playerError } = await supabase
       .from('players')
       .select('referred_by')
       .eq('wallet', wallet)
       .single();
-
-    console.log('Player check result:', { existingPlayer, playerError });
 
     if (playerError) {
       console.error('Error checking existing player:', playerError);
@@ -44,7 +38,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (existingPlayer?.referred_by) {
-      console.log('User already has referrer:', existingPlayer.referred_by);
       return NextResponse.json({
         error: 'already_referred',
         message: 'You already have a referrer assigned'
@@ -54,39 +47,21 @@ export async function POST(req: NextRequest) {
     // Resolve the referral code to get the referrer's wallet
     let referrerWallet = null;
 
-    console.log('Resolving referral code:', code);
-
     // First try to find a custom referral code
-    console.log('Checking custom referral codes...');
     const { data: customCode, error: customCodeError } = await supabase
       .from('custom_referral_codes')
       .select('wallet_address')
       .eq('custom_code', code)
       .maybeSingle();
 
-    console.log('Custom code result:', { customCode, customCodeError });
-
     if (customCode) {
       referrerWallet = customCode.wallet_address;
-      console.log('Found custom code referrer:', referrerWallet);
-
-      // Increment usage count
-      console.log('Incrementing usage count...');
-      const { error: incrementError } = await supabase.rpc('increment_usage_count', {
-        p_custom_code: code
-      });
-      if (incrementError) {
-        console.error('Error incrementing usage count:', incrementError);
-      }
     } else {
       // Try to find by wallet-based code (first 6 characters after 0x)
-      console.log('Checking wallet-based codes...');
       const { data: players, error: playersError } = await supabase
         .from('players')
         .select('wallet')
         .ilike('wallet', `0x${code.toLowerCase()}%`);
-
-      console.log('Wallet-based code result:', { players, playersError });
 
       if (playersError) {
         console.error('Error checking wallet-based codes:', playersError);
@@ -98,12 +73,10 @@ export async function POST(req: NextRequest) {
 
       if (players && players.length > 0) {
         referrerWallet = players[0].wallet;
-        console.log('Found wallet-based referrer:', referrerWallet);
       }
     }
 
     if (!referrerWallet) {
-      console.log('No referrer found for code:', code);
       return NextResponse.json({
         error: 'invalid_referral_code',
         message: 'Referral code not found'
@@ -119,7 +92,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the player's referred_by field
-    console.log('Updating players table...', { wallet, referrerWallet });
     const { error: updateError } = await supabase
       .from('players')
       .update({
@@ -127,10 +99,7 @@ export async function POST(req: NextRequest) {
       })
       .eq('wallet', wallet);
 
-    console.log('Players table update result:', { updateError });
-
     if (updateError) {
-      console.error('Failed to update players table:', updateError);
       reportError(updateError, { route: 'apply_referral_code', wallet, referralCode: code });
       return NextResponse.json({
         error: 'database_error',
@@ -139,13 +108,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Also insert into referrals table for tracking and visibility
-    console.log('Inserting into referrals table...', {
-      referral_code: code,
-      referrer_wallet: referrerWallet,
-      referee_wallet: wallet,
-      is_active: true
-    });
-
     const { error: referralTableError } = await supabase
       .from('referrals')
       .insert({
@@ -153,10 +115,7 @@ export async function POST(req: NextRequest) {
         referrer_wallet: referrerWallet,
         referee_wallet: wallet,
         is_active: true
-        // created_at will be auto-populated by database
       });
-
-    console.log('Referrals table insert result:', { referralTableError });
 
     if (referralTableError) {
       // Log the error but don't fail the request since the main referral is already applied
@@ -166,11 +125,9 @@ export async function POST(req: NextRequest) {
         referrerWallet,
         referralCode: code
       });
-      console.error('Failed to insert into referrals table but referral was applied:', referralTableError);
     }
 
     // Initialize user stats if they don't exist
-    console.log('Initializing user stats...');
     const { error: statsError } = await supabase
       .from('user_stats')
       .upsert({
@@ -186,13 +143,10 @@ export async function POST(req: NextRequest) {
         energy_spent: 0,
         dailySharesCompleted: 0,
         lastDailyShare: null,
-        last_login: new Date().toISOString(),
-        created_at: new Date().toISOString()
+        last_login: new Date().toISOString()
       }, {
         onConflict: 'wallet_address'
       });
-
-    console.log('User stats initialization result:', { statsError });
 
     // Log the referral application
     logMutation('apply_referral_code', {

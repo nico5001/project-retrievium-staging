@@ -100,12 +100,16 @@ function checkStabilizeFailure(
 }
 
 export async function POST(req: NextRequest) {
-  assertSameOrigin(req);
+  try {
+    assertSameOrigin(req);
+  } catch (e) {
+    return NextResponse.json({ error: 'forbidden-origin' }, { status: 403 });
+  }
+
   try {
     const wallet = await requireWallet();
     const { risk = 'STANDARD' } = (await req.json().catch(() => ({}))) as { risk?: 'SAFE' | 'STANDARD' | 'OVERCLOCK' };
     const ymd = todayYMD_UTC8();
-
     const prog = await ensureProgress(wallet);
 
     if (!prog.scan_ready) return NextResponse.json({ error: 'need-scan' }, { status: 400 });
@@ -178,7 +182,7 @@ export async function POST(req: NextRequest) {
           )
           .eq('wallet', wallet)
           .eq('ymd', ymd);
-        if (error) throw new Error(error.message);
+        if (error) throw new Error(`Progress update failed: ${error.message}`);
       })()
     );
 
@@ -190,10 +194,10 @@ export async function POST(req: NextRequest) {
           .select('rzn, stabilizes')
           .eq('wallet', wallet)
           .maybeSingle();
-        if (selErr) throw new Error(selErr.message);
+        if (selErr) throw new Error(`Season stats select failed: ${selErr.message}`);
 
         const currentRzn = Number(ss?.rzn) || 0;
-        const nextRzn = Math.max(0, currentRzn + rznAwarded - rznPenalty); // Add reward, subtract penalty
+        const nextRzn = Math.max(0, currentRzn + rznAwarded - rznPenalty);
         const nextStab = (Number(ss?.stabilizes) || 0) + 1;
 
         const { error: statErr } = await supabase
@@ -207,11 +211,12 @@ export async function POST(req: NextRequest) {
             },
             { onConflict: 'wallet' }
           );
-        if (statErr) throw new Error(statErr.message);
+        if (statErr) throw new Error(`Season stats upsert failed: ${statErr.message}`);
       })()
     );
 
-    
+
+    // Add items to inventory
     for (const it of items) {
       updates.push(
         (async () => {
@@ -220,7 +225,7 @@ export async function POST(req: NextRequest) {
             p_item: it.key,
             p_qty: it.qty,
           });
-          if (invErr) throw new Error(invErr.message);
+          if (invErr) throw new Error(`Inventory update failed for ${it.key}: ${invErr.message}`);
         })()
       );
     }
