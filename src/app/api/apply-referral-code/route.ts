@@ -119,15 +119,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Update the player's referred_by field
+    console.log('Updating players table...', { wallet, referrerWallet });
     const { error: updateError } = await supabase
       .from('players')
       .update({
-        referred_by: referrerWallet,
-        updated_at: new Date().toISOString()
+        referred_by: referrerWallet
       })
       .eq('wallet', wallet);
 
+    console.log('Players table update result:', { updateError });
+
     if (updateError) {
+      console.error('Failed to update players table:', updateError);
       reportError(updateError, { route: 'apply_referral_code', wallet, referralCode: code });
       return NextResponse.json({
         error: 'database_error',
@@ -136,6 +139,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Also insert into referrals table for tracking and visibility
+    console.log('Inserting into referrals table...', {
+      referral_code: code,
+      referrer_wallet: referrerWallet,
+      referee_wallet: wallet,
+      is_active: true
+    });
+
     const { error: referralTableError } = await supabase
       .from('referrals')
       .insert({
@@ -146,6 +156,8 @@ export async function POST(req: NextRequest) {
         // created_at will be auto-populated by database
       });
 
+    console.log('Referrals table insert result:', { referralTableError });
+
     if (referralTableError) {
       // Log the error but don't fail the request since the main referral is already applied
       reportError(referralTableError, {
@@ -154,19 +166,12 @@ export async function POST(req: NextRequest) {
         referrerWallet,
         referralCode: code
       });
-      console.error('Failed to insert into referrals table but referral was applied:', {
-        error: referralTableError,
-        attemptedData: {
-          referral_code: code,
-          referrer_wallet: referrerWallet,
-          referee_wallet: wallet,
-          is_active: true
-        }
-      });
+      console.error('Failed to insert into referrals table but referral was applied:', referralTableError);
     }
 
     // Initialize user stats if they don't exist
-    await supabase
+    console.log('Initializing user stats...');
+    const { error: statsError } = await supabase
       .from('user_stats')
       .upsert({
         wallet_address: wallet,
@@ -186,6 +191,8 @@ export async function POST(req: NextRequest) {
       }, {
         onConflict: 'wallet_address'
       });
+
+    console.log('User stats initialization result:', { statsError });
 
     // Log the referral application
     logMutation('apply_referral_code', {

@@ -73,6 +73,30 @@ export async function awardReferralBonus(
       };
     }
 
+    // Record the referral earning in referral_earnings table
+    const { error: earningsError } = await supabase
+      .from('referral_earnings')
+      .insert({
+        amount: bonusAmount,
+        source: source,
+        earning_type: 'referral_bonus',
+        referrer_wallet: referrerWallet,
+        referee_wallet: userWallet,
+        created_at: new Date().toISOString()
+      });
+
+    if (earningsError) {
+      console.error('Failed to record referral earning:', earningsError);
+      // Don't fail the whole operation, just log the error
+      reportError(earningsError, {
+        context: 'referral_earnings_record',
+        userWallet,
+        referrerWallet,
+        bonusAmount,
+        source
+      });
+    }
+
     // Update user_stats for tracking
     await supabase
       .from('user_stats')
