@@ -26,13 +26,25 @@ export async function POST(req: NextRequest) {
     const code = referralCode.toUpperCase().trim();
 
     // Check if user already has a referrer
-    const { data: existingPlayer } = await supabase
+    console.log('Checking if user already has referrer...');
+    const { data: existingPlayer, error: playerError } = await supabase
       .from('players')
       .select('referred_by')
       .eq('wallet', wallet)
       .single();
 
+    console.log('Player check result:', { existingPlayer, playerError });
+
+    if (playerError) {
+      console.error('Error checking existing player:', playerError);
+      return NextResponse.json({
+        error: 'database_error',
+        message: 'Failed to check player status'
+      }, { status: 500 });
+    }
+
     if (existingPlayer?.referred_by) {
+      console.log('User already has referrer:', existingPlayer.referred_by);
       return NextResponse.json({
         error: 'already_referred',
         message: 'You already have a referrer assigned'
@@ -42,33 +54,56 @@ export async function POST(req: NextRequest) {
     // Resolve the referral code to get the referrer's wallet
     let referrerWallet = null;
 
+    console.log('Resolving referral code:', code);
+
     // First try to find a custom referral code
-    const { data: customCode } = await supabase
+    console.log('Checking custom referral codes...');
+    const { data: customCode, error: customCodeError } = await supabase
       .from('custom_referral_codes')
       .select('wallet_address')
       .eq('custom_code', code)
       .single();
 
+    console.log('Custom code result:', { customCode, customCodeError });
+
     if (customCode) {
       referrerWallet = customCode.wallet_address;
+      console.log('Found custom code referrer:', referrerWallet);
 
       // Increment usage count
-      await supabase.rpc('increment_usage_count', {
+      console.log('Incrementing usage count...');
+      const { error: incrementError } = await supabase.rpc('increment_usage_count', {
         p_custom_code: code
       });
+      if (incrementError) {
+        console.error('Error incrementing usage count:', incrementError);
+      }
     } else {
       // Try to find by wallet-based code (first 6 characters after 0x)
-      const { data: players } = await supabase
+      console.log('Checking wallet-based codes...');
+      const { data: players, error: playersError } = await supabase
         .from('players')
         .select('wallet')
         .ilike('wallet', `0x${code.toLowerCase()}%`);
 
+      console.log('Wallet-based code result:', { players, playersError });
+
+      if (playersError) {
+        console.error('Error checking wallet-based codes:', playersError);
+        return NextResponse.json({
+          error: 'database_error',
+          message: 'Failed to resolve referral code'
+        }, { status: 500 });
+      }
+
       if (players && players.length > 0) {
         referrerWallet = players[0].wallet;
+        console.log('Found wallet-based referrer:', referrerWallet);
       }
     }
 
     if (!referrerWallet) {
+      console.log('No referrer found for code:', code);
       return NextResponse.json({
         error: 'invalid_referral_code',
         message: 'Referral code not found'
