@@ -8,12 +8,15 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   assertSameOrigin(req);
 
+  let wallet: string | undefined;
+  let referralCode: string | undefined;
+
   try {
-    const wallet = await requireWallet();
+    wallet = await requireWallet();
     console.log('Apply referral code - wallet:', wallet);
 
     const body = await req.json();
-    const { referralCode } = body;
+    referralCode = body.referralCode;
     console.log('Apply referral code - request body:', body);
 
     if (!referralCode || typeof referralCode !== 'string') {
