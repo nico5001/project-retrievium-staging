@@ -93,6 +93,28 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
+    // Also insert into referrals table for tracking and visibility
+    const { error: referralTableError } = await supabase
+      .from('referrals')
+      .insert({
+        referral_code: code,
+        referrer_wallet: referrerWallet,
+        referee_wallet: wallet,
+        is_active: true,
+        created_at: new Date().toISOString()
+      });
+
+    if (referralTableError) {
+      // Log the error but don't fail the request since the main referral is already applied
+      reportError(referralTableError, {
+        route: 'apply_referral_code_referrals_table',
+        wallet,
+        referrerWallet,
+        referralCode: code
+      });
+      console.error('Failed to insert into referrals table but referral was applied:', referralTableError);
+    }
+
     // Initialize user stats if they don't exist
     await supabase
       .from('user_stats')
